@@ -297,7 +297,7 @@ footer.foot{
 // ============================================================
 // 1. Implante o Code.gs (arquivo separado) como App da Web no Google Apps Script.
 // 2. Cole a URL de implantação (termina em /exec) na linha abaixo.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1uTptY9CnNd1oRarqS0vs0ak_l7XpB3afkKZUMEWjaPytfYNNl7akRJLv62b9selj/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQBcsu06K8eeIh3ObVkSNXlOCSpzXTeuakttxVTupBWyeFTDoaluLe3p9XbxqB2Sa8/exec';
 
 function isAppsScriptConfigured(){
   return APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf('COLE_AQUI') === -1;
@@ -1535,7 +1535,7 @@ async function renderFavoritos(){
     '<p class="sec-desc">' + STATE.master.size.toLocaleString('pt-BR') + ' pessoas na base carregada. Segmentos favoritados por qualquer pessoa do time aparecem aqui para todo mundo, sempre recalculados na hora com os dados atuais.</p>' +
     '<div style="display:flex; gap:10px; margin:16px 0; flex-wrap:wrap;">' +
     '<button class="dl-btn" style="background:var(--orange); font-size:14px; padding:12px 22px;" onclick="renderCustomBuilder()">+ Novo Segmento</button>' +
-    '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">\u2191 Enviar planilhas novas (atualizar base)</button>' +
+    (STATE.isAdmin ? '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">\u2191 Enviar planilhas novas (atualizar base)</button>' : '') +
     '</div>' +
     '<div id="favoritosList"><div class="log-box"><span class="spinner"></span>Carregando favoritos...</div></div>' +
     '</section>';
@@ -1633,6 +1633,9 @@ function applyCriteriaToUI(c){
 // INICIALIZAÇÃO
 // ============================================================
 async function initApp(){
+  const params = new URLSearchParams(window.location.search);
+  STATE.isAdmin = params.get('admin') === '1';
+
   if(!isAppsScriptConfigured()){
     document.getElementById('mainContent').innerHTML =
       '<section class="panel active">' +
@@ -1650,13 +1653,25 @@ async function initApp(){
   try{
     meta = await checkForPublishedBase();
   }catch(err){
+    if(!STATE.isAdmin){
+      document.getElementById('mainContent').innerHTML =
+        '<section class="panel active"><div class="callout warn"><div class="ic">\u26a0</div><div><b>N\u00e3o consegui conectar \u00e0 base compartilhada.</b><p>Avise quem administra a ferramenta \u2014 pode ser um problema tempor\u00e1rio de conex\u00e3o com o backend.</p></div></div></section>';
+      return;
+    }
     document.getElementById('mainContent').innerHTML =
       '<section class="panel active"><div class="callout warn"><div class="ic">\u26a0</div><div><b>N\u00e3o consegui conectar ao backend.</b><p>' + err.message + '. Confira se a URL do Apps Script est\u00e1 correta e se a implanta\u00e7\u00e3o est\u00e1 com acesso "Qualquer pessoa". Seguindo no modo local por enquanto.</p></div></div></section>';
     await new Promise(function(r){ setTimeout(r, 2500); });
     renderUploadScreen();
     return;
   }
+
   if(meta){
+    // Base publicada existe: carrega automaticamente para quem só consulta (sem clique extra).
+    // Quem é admin ainda vê a tela intermediária, com a opção de mandar planilha nova.
+    if(!STATE.isAdmin){
+      await loadPublishedBase(meta);
+      return;
+    }
     document.getElementById('mainContent').innerHTML =
       '<section class="panel active">' +
       '<h2 class="sec-title">Base publicada encontrada</h2>' +
@@ -1666,8 +1681,13 @@ async function initApp(){
       '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">Enviar planilhas novas</button>' +
       '</div>' +
       '</section>';
-  } else {
+  } else if(STATE.isAdmin){
     renderUploadScreen();
+  } else {
+    document.getElementById('mainContent').innerHTML =
+      '<section class="panel active">' +
+      '<div class="callout warn"><div class="ic">\u23f3</div><div><b>Ainda n\u00e3o h\u00e1 nenhuma base publicada.</b><p>Peça para quem administra a ferramenta subir e publicar as planilhas primeiro \u2014 depois disso, esta tela carrega automaticamente pra todo mundo.</p></div></div>' +
+      '</section>';
   }
 }
 initApp();
