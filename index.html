@@ -292,56 +292,17 @@ footer.foot{
 
 <script>
 // ============================================================
-// BACKEND — Google Apps Script (substitui o armazenamento do Claude,
-// para o app funcionar hospedado no GitHub Pages, fora do claude.ai)
+// BASE DE DADOS EMBUTIDA — sem backend, sem fetch, sem CORS.
+// O admin sobe as planilhas neste app, clica em "Gerar HTML atualizado" e
+// baixa uma copia deste MESMO arquivo com os dados processados escritos
+// aqui dentro (entre os marcadores abaixo). Essa copia e o arquivo que vai
+// pro GitHub — todo mundo que abrir ja ve o dashboard pronto, na hora.
 // ============================================================
-// 1. Implante o Code.gs (arquivo separado) como App da Web no Google Apps Script.
-// 2. Cole a URL de implantação (termina em /exec) na linha abaixo.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx6WR5_zz4C1od-T2UeuwEBRoiVwmeHd52iVxqyPVWTtw1o6f9yeOI_rCY9TYHB-8w2/exec';
+/*__EMBEDDED_DATA_START__*/
+const EMBEDDED_DATA = null;
+/*__EMBEDDED_DATA_END__*/
 
-function isAppsScriptConfigured(){
-  return APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf('COLE_AQUI') === -1;
-}
 
-window.storage = {
-  get: async function(key, shared){
-    if(!isAppsScriptConfigured()) return null;
-    const url = APPS_SCRIPT_URL + '?action=get&key=' + encodeURIComponent(key) + '&_=' + Date.now();
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data.error) throw new Error(data.error);
-    if(data.value === null || data.value === undefined) return null;
-    return { key: key, value: data.value, shared: !!shared };
-  },
-  set: async function(key, value, shared){
-    if(!isAppsScriptConfigured()) throw new Error('Backend n\u00e3o configurado (APPS_SCRIPT_URL).');
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
-      body: JSON.stringify({ action:'set', key: key, value: value })
-    });
-    const data = await res.json();
-    if(data.error) throw new Error(data.error);
-    return { key: key, value: value, shared: !!shared };
-  },
-  delete: async function(key, shared){
-    if(!isAppsScriptConfigured()) return null;
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'delete', key: key })
-    });
-    const data = await res.json();
-    return { key: key, deleted: true, shared: !!shared };
-  },
-  list: async function(prefix, shared){
-    if(!isAppsScriptConfigured()) return { keys: [], shared: !!shared };
-    const url = APPS_SCRIPT_URL + '?action=list&prefix=' + encodeURIComponent(prefix||'') + '&_=' + Date.now();
-    const res = await fetch(url);
-    const data = await res.json();
-    return { keys: data.keys || [], shared: !!shared };
-  }
-};
 
 // ============================================================
 // ESTADO GLOBAL
@@ -903,7 +864,7 @@ async function processAll(){
   logMsg('Conclu\u00eddo. ' + master.size + ' pessoas processadas.');
 
   await new Promise(function(r){ setTimeout(r, 300); });
-  renderPublishScreen();
+  renderGenerateScreen();
 }
 
 // ============================================================
@@ -1245,7 +1206,7 @@ function renderCustomBuilder(){
     '<section class="panel active">' +
     '<h2 class="sec-title">Passo 4 \u2014 Construtor de Segmentos Personalizados</h2>' +
     '<p class="sec-desc">Combine quantos crit\u00e9rios quiser (todos com E l\u00f3gico entre si). Clique em "Aplicar filtros" para ver o resultado.</p>' +
-    '<div style="margin-bottom:16px;"><button class="dl-btn" style="background:#8B86A0;" onclick="renderFavoritos()">\u2190 Voltar para Favoritos</button></div>' +
+    '<div style="margin-bottom:16px;"><button class="dl-btn" style="background:#8B86A0;" onclick="renderDashboardHome()">\u2190 Voltar</button></div>' +
 
     '<div class="grid cols-2" style="gap:16px; align-items:start;">' +
       '<div class="card"><h3>Gera\u00e7\u00e3o</h3>' + gerChecks + '</div>' +
@@ -1408,7 +1369,6 @@ function applyCustomFilters(){
     '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; flex-wrap:wrap;">' +
     '<p>' + result.length + ' pessoas correspondem a esses crit\u00e9rios</p>' +
     '<div style="display:flex; gap:8px;">' +
-    '<button class="dl-btn" style="background:var(--teal);" onclick="promptSaveFavorito()">\u2605 Favoritar este segmento</button>' +
     '<button class="dl-btn" style="background:var(--orange);" onclick="downloadCSV(\'CUSTOM\')">Baixar CSV</button>' +
     '</div></div>' +
     '<hr class="section-divider">' +
@@ -1420,213 +1380,111 @@ function applyCustomFilters(){
 }
 
 // ============================================================
-// PUBLICAÇÃO / CARREGAMENTO DA BASE COMPARTILHADA (BACKEND)
+// TELA DEPOIS DE PROCESSAR — GERAR O HTML ATUALIZADO
 // ============================================================
-async function renderPublishScreen(){
+async function renderGenerateScreen(){
   document.getElementById('mainContent').innerHTML =
     '<section class="panel active">' +
-    '<h2 class="sec-title">Base processada \u2014 ' + STATE.master.size.toLocaleString('pt-BR') + ' pessoas</h2>' +
-    '<p class="sec-desc">Publique para que qualquer pessoa do time consiga gerar segmenta\u00e7\u00f5es sem precisar subir as planilhas de novo. A base fica salva no backend do pr\u00f3prio app, compartilhada para todo mundo.</p>' +
+    '<h2 class="sec-title">Base processada — ' + STATE.master.size.toLocaleString('pt-BR') + ' pessoas</h2>' +
+    '<p class="sec-desc">Gere um arquivo HTML atualizado com esta base já embutida dentro dele. Baixe o arquivo, suba pro GitHub (substituindo o atual) e publique — o time abre o link e já vê o dashboard pronto, sem subir planilha nenhuma.</p>' +
     '<div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;">' +
-    '<button class="dl-btn" style="font-size:14px; padding:12px 26px; background:var(--teal);" onclick="publishToTeam()">\u2601 Publicar para o time</button>' +
-    '<button class="dl-btn" style="font-size:14px; padding:12px 26px; background:#8B86A0;" onclick="skipPublishAndUseLocally()">Usar s\u00f3 agora, sem publicar</button>' +
+    '<button class="dl-btn" style="font-size:14px; padding:12px 26px; background:var(--teal);" onclick="generateUpdatedHtml()">⬇ Gerar HTML atualizado</button>' +
+    '<button class="dl-btn" style="font-size:14px; padding:12px 26px; background:#8B86A0;" onclick="useLocallyWithoutGenerating()">Usar só agora, sem gerar arquivo</button>' +
     '</div>' +
     '<div id="publishStatus" style="margin-top:18px;"></div>' +
     '</section>';
 }
 
-function skipPublishAndUseLocally(){
-  renderFavoritos();
+function useLocallyWithoutGenerating(){
+  renderDashboardHome();
 }
 
-async function publishToTeam(){
+async function generateUpdatedHtml(){
   const statusEl = document.getElementById('publishStatus');
-  statusEl.innerHTML = '<div class="log-box"><span class="spinner"></span>Codificando e publicando...</div>';
+  statusEl.innerHTML = '<div class="log-box"><span class="spinner"></span>Gerando arquivo atualizado...</div>';
   try{
-    const encoded = encodeMasterForPublish(STATE.master);
-    await window.storage.set('segbuilder_master_meta', encoded.meta, true);
-    for(let i=0;i<encoded.chunks.length;i++){
-      await window.storage.set('segbuilder_master_chunk_'+i, encoded.chunks[i], true);
-      statusEl.innerHTML = '<div class="log-box">Publicando base... chunk ' + (i+1) + '/' + encoded.chunks.length + '</div>';
+    const masterEncoded = encodeMasterForPublish(STATE.master);
+    const vouchersEncoded = (STATE.voucherTransactions && STATE.voucherTransactions.length)
+      ? encodeVouchersForPublish(STATE.voucherTransactions) : null;
+    const dataPayload = { master: masterEncoded, vouchers: vouchersEncoded };
+    const dataJson = JSON.stringify(dataPayload);
+
+    // Busca o próprio HTML publicado (mesma origem, sem CORS) para gerar uma cópia atualizada dele.
+    const selfUrl = window.location.href.split('#')[0].split('?')[0];
+    const res = await fetch(selfUrl, { cache: 'no-store' });
+    if(!res.ok) throw new Error('Não consegui ler o próprio arquivo HTML (status ' + res.status + ').');
+    let html = await res.text();
+
+    const startMarker = '/*__EMBEDDED_DATA_START__*/';
+    const endMarker = '/*__EMBEDDED_DATA_END__*/';
+    const startIdx = html.indexOf(startMarker);
+    const endIdx = html.indexOf(endMarker);
+    if(startIdx === -1 || endIdx === -1){
+      throw new Error('Não encontrei os marcadores de dados no HTML — parece que o arquivo foi editado manualmente e perdeu os comentários __EMBEDDED_DATA_START__/__EMBEDDED_DATA_END__.');
     }
-    if(STATE.voucherTransactions && STATE.voucherTransactions.length){
-      const vEncoded = encodeVouchersForPublish(STATE.voucherTransactions);
-      if(vEncoded){
-        await window.storage.set('segbuilder_vouchers_meta', vEncoded.meta, true);
-        for(let i=0;i<vEncoded.chunks.length;i++){
-          await window.storage.set('segbuilder_vouchers_chunk_'+i, vEncoded.chunks[i], true);
-        }
-      }
-    } else {
-      await window.storage.delete('segbuilder_vouchers_meta', true).catch(function(){});
-    }
-    statusEl.innerHTML = '<div class="callout good"><div class="ic">\u2705</div><div><b>Base publicada com sucesso.</b><p>Qualquer pessoa que abrir este app agora vai ver esta base carregada automaticamente, sem precisar subir planilha nenhuma.</p></div></div>';
-    await new Promise(function(r){ setTimeout(r, 1200); });
-    renderFavoritos();
+
+    const before = html.slice(0, startIdx + startMarker.length);
+    const after = html.slice(endIdx);
+    const newHtml = before + '\nconst EMBEDDED_DATA = ' + dataJson + ';\n' + after;
+
+    const blob = new Blob([newHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'index.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    statusEl.innerHTML = '<div class="callout good"><div class="ic">✅</div><div><b>Arquivo gerado com sucesso.</b><p>Baixe o <code>index.html</code> (deve ter caído nos seus Downloads), substitua o arquivo do seu repositório no GitHub e faça o commit/push. Assim que o GitHub Pages publicar, todo mundo que abrir o link já vê esta base carregada automaticamente.</p></div></div>';
   }catch(err){
-    statusEl.innerHTML = '<div class="callout warn"><div class="ic">\u26a0</div><div><b>Erro ao publicar.</b><p>' + err.message + '</p></div></div>';
+    statusEl.innerHTML = '<div class="callout warn"><div class="ic">⚠</div><div><b>Erro ao gerar o arquivo.</b><p>' + err.message + '</p></div></div>';
   }
-}
-
-async function checkForPublishedBase(){
-  const meta = await window.storage.get('segbuilder_master_meta', true);
-  if(!meta || !meta.value) return null;
-  return meta.value;
-}
-
-async function loadPublishedBase(meta){
-  renderProgressScreen();
-  STATE.log = [];
-  STATE.segments = {};
-  logMsg('Carregando base publicada (' + meta.totalRecords + ' pessoas, publicada em ' + new Date(meta.publishedAt).toLocaleString('pt-BR') + ')...');
-  setProgress(20);
-  const chunks = [];
-  for(let i=0;i<meta.chunkCount;i++){
-    const chunkResult = await window.storage.get('segbuilder_master_chunk_'+i, true);
-    chunks.push(chunkResult ? chunkResult.value : []);
-    setProgress(20 + Math.round((i+1)/meta.chunkCount*50));
-  }
-  STATE.master = decodeMasterFromPublish(meta, chunks);
-  STATE.temDataMes2026 = !!meta.temDataMes2026;
-  logMsg('Base carregada: ' + STATE.master.size + ' pessoas.');
-  setProgress(80);
-
-  try{
-    const vMeta = await window.storage.get('segbuilder_vouchers_meta', true);
-    if(vMeta && vMeta.value){
-      const vChunks = [];
-      for(let i=0;i<vMeta.value.chunkCount;i++){
-        const r = await window.storage.get('segbuilder_vouchers_chunk_'+i, true);
-        vChunks.push(r ? r.value : []);
-      }
-      STATE.voucherTransactions = decodeVouchersFromPublish(vMeta.value, vChunks);
-      logMsg('Hist\u00f3rico de vouchers carregado: ' + STATE.voucherTransactions.length + ' transa\u00e7\u00f5es (para recomenda\u00e7\u00e3o de argumentos).');
-    } else {
-      STATE.voucherTransactions = [];
-    }
-  }catch(err){
-    STATE.voucherTransactions = [];
-  }
-  setProgress(100);
-  await new Promise(function(r){ setTimeout(r, 200); });
-  renderFavoritos();
 }
 
 // ============================================================
-// FAVORITOS (substitui a antiga grade de segmentos fixos)
+// PAINEL PRINCIPAL (HUB) — segmentos prontos + construtor
 // ============================================================
-async function loadFavoritosList(){
-  try{
-    const res = await window.storage.get('segbuilder_favoritos', true);
-    return (res && res.value) ? res.value : [];
-  }catch(err){
-    return [];
-  }
-}
+function renderDashboardHome(){
+  const groups = {};
+  const groupOrder = [];
+  Object.keys(STATE.segments).forEach(function(k){
+    const s = STATE.segments[k];
+    if(k === 'CUSTOM') return;
+    if(!groups[s.group]){ groups[s.group] = []; groupOrder.push(s.group); }
+    groups[s.group].push({ key: k, seg: s });
+  });
+  const preferredOrder = ['Ativação','Reativação','Fidelização','Plano Família','Mídia Paga','Info'];
+  const orderedGroups = preferredOrder.filter(function(g){ return groups[g]; })
+    .concat(groupOrder.filter(function(g){ return preferredOrder.indexOf(g) === -1; }));
 
-async function saveFavoritosList(list){
-  await window.storage.set('segbuilder_favoritos', list, true);
-}
+  const groupsHtml = orderedGroups.map(function(g){
+    const cards = groups[g].map(function(item){
+      return '<div class="seg-card">' +
+        '<h4>' + item.seg.label + ' <span class="seg-n">' + item.seg.count.toLocaleString('pt-BR') + '</span></h4>' +
+        '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
+        '<button class="dl-btn" onclick="showBenefitsForSegment(\'' + item.key + '\',\'benef-' + item.key + '\')">Ver argumentos</button>' +
+        '<button class="dl-btn" style="background:var(--purple);" onclick="downloadCSV(\'' + item.key + '\')">Baixar CSV</button>' +
+        '</div>' +
+        '<div id="benef-' + item.key + '" style="display:none;"></div>' +
+        '</div>';
+    }).join('');
+    return '<h3 style="margin-top:26px; font-size:16px;">' + g + '</h3><div class="grid cols-2">' + cards + '</div>';
+  }).join('');
 
-async function renderFavoritos(){
   document.getElementById('mainContent').innerHTML =
     '<section class="panel active">' +
-    '<h2 class="sec-title">Segmentos Favoritos</h2>' +
-    '<p class="sec-desc">' + STATE.master.size.toLocaleString('pt-BR') + ' pessoas na base carregada. Segmentos favoritados por qualquer pessoa do time aparecem aqui para todo mundo, sempre recalculados na hora com os dados atuais.</p>' +
-    '<div style="display:flex; gap:10px; margin:16px 0; flex-wrap:wrap;">' +
-    '<button class="dl-btn" style="background:var(--orange); font-size:14px; padding:12px 22px;" onclick="renderCustomBuilder()">+ Novo Segmento</button>' +
-    (STATE.isAdmin ? '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">\u2191 Enviar planilhas novas (atualizar base)</button>' : '') +
+    '<div class="kpi-strip" style="margin-bottom:6px; grid-template-columns:repeat(auto-fit,minmax(160px,220px));">' +
+    '<div class="stat"><div class="n">' + STATE.master.size.toLocaleString('pt-BR') + '</div><div class="l">Pessoas na base</div></div>' +
     '</div>' +
-    '<div id="favoritosList"><div class="log-box"><span class="spinner"></span>Carregando favoritos...</div></div>' +
+    '<div style="display:flex; gap:12px; margin:18px 0; flex-wrap:wrap;">' +
+    '<button class="dl-btn" style="background:var(--orange); font-size:14px; padding:12px 22px;" onclick="renderCustomBuilder()">+ Novo Segmento personalizado</button>' +
+    '<button class="dl-btn" style="background:#8B86A0;" onclick="downloadAllSegmentsSummary()">Baixar resumo de todos os segmentos</button>' +
+    (STATE.isAdmin ? '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">↑ Enviar planilhas novas (atualizar base)</button>' : '') +
+    '</div>' +
+    groupsHtml +
     '</section>';
-
-  const favoritos = await loadFavoritosList();
-  const listEl = document.getElementById('favoritosList');
-  if(favoritos.length === 0){
-    listEl.innerHTML = '<div class="callout insight"><div class="ic">\ud83d\udca1</div><div><b>Nenhum segmento favoritado ainda.</b><p>V\u00e1 em "+ Novo Segmento", monte os crit\u00e9rios que quiser e clique em "\u2605 Favoritar este segmento" no resultado \u2014 ele aparece aqui pra todo mundo do time a partir da\u00ed.</p></div></div>';
-    return;
-  }
-
-  const cards = favoritos.map(function(fav, idx){
-    const result = applyFilterCriteria(fav.criteria, STATE.master);
-    return '<div class="seg-card">' +
-      '<h4>\u2b50 ' + fav.nome + ' <span class="seg-n">' + result.length.toLocaleString('pt-BR') + '</span></h4>' +
-      '<p style="font-size:11px; color:var(--ink-soft); margin-bottom:10px;">Salvo por ' + (fav.autor||'algu\u00e9m do time') + ' em ' + new Date(fav.criadoEm).toLocaleDateString('pt-BR') + '</p>' +
-      '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
-      '<button class="dl-btn" onclick="verArgumentosFavorito(' + idx + ')">Ver argumentos</button>' +
-      '<button class="dl-btn" onclick="downloadFavoritoCSV(' + idx + ')">Baixar CSV</button>' +
-      '<button class="dl-btn" style="background:var(--purple);" onclick="editarFavorito(' + idx + ')">Abrir no construtor</button>' +
-      '<button class="dl-btn" style="background:var(--red);" onclick="removerFavorito(' + idx + ')">Remover</button>' +
-      '</div>' +
-      '<div id="favBenef-' + idx + '" style="display:none;"></div>' +
-      '</div>';
-  }).join('');
-  listEl.innerHTML = cards;
-  STATE.favoritosCache = favoritos;
-}
-
-async function promptSaveFavorito(){
-  const nome = prompt('Nome deste segmento (vai aparecer para todo o time):');
-  if(!nome) return;
-  const autor = prompt('Seu nome (opcional, s\u00f3 pra identifica\u00e7\u00e3o):') || 'An\u00f4nimo';
-  const favoritos = await loadFavoritosList();
-  favoritos.push({ nome: nome, autor: autor, criadoEm: new Date().toISOString(), criteria: STATE.lastCriteria });
-  await saveFavoritosList(favoritos);
-  alert('Segmento favoritado! Vai aparecer na tela de Favoritos para todo o time.');
-}
-
-function verArgumentosFavorito(idx){
-  const fav = STATE.favoritosCache[idx];
-  const result = applyFilterCriteria(fav.criteria, STATE.master);
-  const benefitsResult = computeTopBenefits(result.map(function(r){return r.cpf;}));
-  const el = document.getElementById('favBenef-'+idx);
-  el.innerHTML = renderBenefitsHTML(benefitsResult, result.length);
-  el.style.display = 'block';
-}
-
-function downloadFavoritoCSV(idx){
-  const fav = STATE.favoritosCache[idx];
-  const result = applyFilterCriteria(fav.criteria, STATE.master);
-  const csv = 'CPF\n' + result.map(function(r){return r.cpf;}).join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fav.nome.replace(/[^a-z0-9]/gi,'_') + '.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-async function removerFavorito(idx){
-  if(!confirm('Remover este segmento favorito para todo o time?')) return;
-  const favoritos = await loadFavoritosList();
-  favoritos.splice(idx,1);
-  await saveFavoritosList(favoritos);
-  renderFavoritos();
-}
-
-function editarFavorito(idx){
-  const fav = STATE.favoritosCache[idx];
-  renderCustomBuilder();
-  setTimeout(function(){ applyCriteriaToUI(fav.criteria); }, 50);
-}
-
-function applyCriteriaToUI(c){
-  document.querySelectorAll('.gerCheck').forEach(function(el){ el.checked = c.gerSelected.includes(el.value); });
-  document.querySelectorAll('.geoCheck').forEach(function(el){ el.checked = c.geoSelected.includes(el.value); });
-  document.querySelectorAll('.pfCheck').forEach(function(el){ el.checked = c.pfSelected.includes(el.value); });
-  document.querySelectorAll('.tempoCasaCheck').forEach(function(el){ el.checked = c.tempoCasaSelected.includes(el.value); });
-  document.querySelectorAll('.mes2026Check').forEach(function(el){ el.checked = c.meses2026Selecionados.includes(Number(el.value)); });
-  function setSel(id,v){ const el=document.getElementById(id); if(el) el.value = v; }
-  setSel('statusSelect', c.statusSel);
-  setSel('emailSelect', c.emailSel); setSel('waSelect', c.waSel); setSel('appSelect', c.appSel);
-  setSel('siteSelect', c.siteSel); setSel('newsSelect', c.newsSel); setSel('pushSelect', c.pushSel);
-  setSel('year2023', c.y23Sel); setSel('year2024', c.y24Sel); setSel('year2025', c.y25Sel); setSel('year2026', c.y26Sel);
-  function setVal(id,v){ const el=document.getElementById(id); if(el) el.value = (v===null?'':v); }
-  setVal('nCanaisMin', c.nMin); setVal('nCanaisMax', c.nMax);
-  setVal('mesesMin', c.mesesMin); setVal('mesesMax', c.mesesMax);
-  const mesesMultiEl = document.getElementById('mesesMultiSelect');
-  if(mesesMultiEl){ Array.from(mesesMultiEl.options).forEach(function(o){ o.selected = c.mesesEspecificos.includes(Number(o.value)); }); }
-  applyCustomFilters();
 }
 
 // ============================================================
@@ -1636,57 +1494,23 @@ async function initApp(){
   const params = new URLSearchParams(window.location.search);
   STATE.isAdmin = params.get('admin') === '1';
 
-  if(!isAppsScriptConfigured()){
-    document.getElementById('mainContent').innerHTML =
-      '<section class="panel active">' +
-      '<div class="callout warn"><div class="ic">\u26a0</div><div><b>Backend n\u00e3o configurado ainda.</b><p>Este app precisa de uma URL de Apps Script implantada para publicar/compartilhar bases e favoritos com o time. Edite a constante <code>APPS_SCRIPT_URL</code> no in\u00edcio do arquivo HTML com a URL do seu deploy (veja instru\u00e7\u00f5es no arquivo COMO_IMPLANTAR.md). Por enquanto, o app segue funcionando s\u00f3 localmente nesta aba \u2014 publicar e favoritar ficam indispon\u00edveis.</p>' +
-      '<p style="margin-top:10px; font-size:11.5px; font-family:monospace; background:#fff; padding:8px 10px; border-radius:6px; word-break:break-all;">Valor atual detectado: <b>' + APPS_SCRIPT_URL + '</b></p>' +
-      '<p style="margin-top:6px; font-size:11.5px;">Se voc\u00ea j\u00e1 editou essa linha e ainda v\u00ea a mensagem: (1) confirme que salvou o arquivo antes de subir pro GitHub, (2) confirme que est\u00e1 vendo a p\u00e1gina publicada e n\u00e3o uma c\u00f3pia antiga em cache do navegador (Ctrl+Shift+R for\u00e7a recarregar), (3) confirme que a URL termina em <code>/exec</code>, n\u00e3o <code>/dev</code>.</p></div></div>' +
-      '</section>';
-    logMsg('APPS_SCRIPT_URL n\u00e3o configurada \u2014 seguindo s\u00f3 no modo local.');
-    await new Promise(function(r){ setTimeout(r, 2500); });
-    renderUploadScreen();
-    return;
-  }
-  document.getElementById('mainContent').innerHTML = '<section class="panel active"><div class="log-box"><span class="spinner"></span>Conectando ao backend...</div></section>';
-  let meta = null;
-  try{
-    meta = await checkForPublishedBase();
-  }catch(err){
-    if(!STATE.isAdmin){
-      document.getElementById('mainContent').innerHTML =
-        '<section class="panel active"><div class="callout warn"><div class="ic">\u26a0</div><div><b>N\u00e3o consegui conectar \u00e0 base compartilhada.</b><p>Avise quem administra a ferramenta \u2014 pode ser um problema tempor\u00e1rio de conex\u00e3o com o backend.</p></div></div></section>';
-      return;
-    }
-    document.getElementById('mainContent').innerHTML =
-      '<section class="panel active"><div class="callout warn"><div class="ic">\u26a0</div><div><b>N\u00e3o consegui conectar ao backend.</b><p>' + err.message + '. Confira se a URL do Apps Script est\u00e1 correta e se a implanta\u00e7\u00e3o est\u00e1 com acesso "Qualquer pessoa". Seguindo no modo local por enquanto.</p></div></div></section>';
-    await new Promise(function(r){ setTimeout(r, 2500); });
-    renderUploadScreen();
+  if(EMBEDDED_DATA && EMBEDDED_DATA.master){
+    STATE.master = decodeMasterFromPublish(EMBEDDED_DATA.master.meta, EMBEDDED_DATA.master.chunks);
+    STATE.temDataMes2026 = !!EMBEDDED_DATA.master.meta.temDataMes2026;
+    STATE.voucherTransactions = EMBEDDED_DATA.vouchers
+      ? decodeVouchersFromPublish(EMBEDDED_DATA.vouchers.meta, EMBEDDED_DATA.vouchers.chunks)
+      : [];
+    STATE.segments = buildSegments(STATE.master);
+    renderDashboardHome();
     return;
   }
 
-  if(meta){
-    // Base publicada existe: carrega automaticamente para quem só consulta (sem clique extra).
-    // Quem é admin ainda vê a tela intermediária, com a opção de mandar planilha nova.
-    if(!STATE.isAdmin){
-      await loadPublishedBase(meta);
-      return;
-    }
-    document.getElementById('mainContent').innerHTML =
-      '<section class="panel active">' +
-      '<h2 class="sec-title">Base publicada encontrada</h2>' +
-      '<div class="callout good"><div class="ic">\u2601</div><div><b>' + meta.totalRecords.toLocaleString('pt-BR') + ' pessoas</b><p>Publicada em ' + new Date(meta.publishedAt).toLocaleString('pt-BR') + '. Carregue para gerar segmenta\u00e7\u00f5es sem subir planilha nenhuma.</p></div></div>' +
-      '<div style="display:flex; gap:12px; margin-top:18px;">' +
-      '<button class="dl-btn" style="font-size:14px; padding:12px 26px; background:var(--teal);" onclick="loadPublishedBase(' + JSON.stringify(meta).replace(/"/g,'&quot;') + ')">Carregar base publicada</button>' +
-      '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">Enviar planilhas novas</button>' +
-      '</div>' +
-      '</section>';
-  } else if(STATE.isAdmin){
+  if(STATE.isAdmin){
     renderUploadScreen();
   } else {
     document.getElementById('mainContent').innerHTML =
       '<section class="panel active">' +
-      '<div class="callout warn"><div class="ic">\u23f3</div><div><b>Ainda n\u00e3o h\u00e1 nenhuma base publicada.</b><p>Peça para quem administra a ferramenta subir e publicar as planilhas primeiro \u2014 depois disso, esta tela carrega automaticamente pra todo mundo.</p></div></div>' +
+      '<div class="callout warn"><div class="ic">\u23f3</div><div><b>Ainda n\u00e3o h\u00e1 nenhuma base publicada.</b><p>Pe\u00e7a para quem administra a ferramenta subir as planilhas e gerar o arquivo HTML atualizado \u2014 depois de publicado no GitHub, esta tela j\u00e1 carrega o dashboard automaticamente pra todo mundo.</p></div></div>' +
       '</section>';
   }
 }
