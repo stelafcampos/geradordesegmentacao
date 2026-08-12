@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Segmentações — Clube do Assinante GZH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --purple: #5B3A9E;
+  --purple-deep: #3D2670;
+  --purple-light: #EDE7F9;
+  --teal: #0F9E96;
+  --teal-light: #E1F5F3;
+  --orange: #F2994A;
+  --orange-light: #FDEEDD;
+  --ink: #1D1B2E;
+  --ink-soft: #55516E;
+  --paper: #FAF9FC;
+  --card: #FFFFFF;
+  --line: #E6E2F0;
+  --red: #D64550;
+  --red-light: #FBE7E9;
+  --green: #2E9E5B;
+  --green-light: #E4F5EA;
+  --radius: 14px;
+  --shadow: 0 2px 16px rgba(61,38,112,0.07);
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  font-family:'Archivo',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.display{font-family:'Plus Jakarta Sans',sans-serif;}
+::selection{background:var(--purple-light);}
+
+/* ---------- HEADER ---------- */
+header.top{
+  background:linear-gradient(120deg, var(--purple-deep) 0%, var(--purple) 55%, #7A52C7 100%);
+  color:#fff;
+  padding:38px 5vw 30px;
+  position:relative;
+  overflow:hidden;
+}
+header.top::after{
+  content:"";
+  position:absolute; right:-80px; top:-80px;
+  width:320px; height:320px; border-radius:50%;
+  background:radial-gradient(circle, rgba(242,153,74,0.35) 0%, rgba(242,153,74,0) 70%);
+}
+header.top::before{
+  content:"";
+  position:absolute; left:20%; bottom:-140px;
+  width:260px; height:260px; border-radius:50%;
+  background:radial-gradient(circle, rgba(15,158,150,0.35) 0%, rgba(15,158,150,0) 70%);
+}
+.eyebrow{
+  font-size:12.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:#D9C9F7; font-weight:700; margin-bottom:10px; position:relative;
+}
+h1.title{
+  font-size:clamp(26px,3.4vw,38px); font-weight:800; margin:0 0 10px; max-width:820px; position:relative;
+}
+.subtitle{font-size:15.5px; color:#E4DAF6; max-width:680px; position:relative;}
+.kpi-strip{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px; margin-top:26px; position:relative;
+}
+.kpi{
+  background:rgba(255,255,255,0.09);
+  border:1px solid rgba(255,255,255,0.18);
+  border-radius:12px; padding:14px 16px; backdrop-filter:blur(6px);
+}
+.kpi .n{font-family:'Plus Jakarta Sans',sans-serif; font-size:24px; font-weight:800; line-height:1.1;}
+.kpi .l{font-size:12px; color:#D9C9F7; margin-top:4px;}
+
+/* ---------- NAV ---------- */
+nav.tabs{
+  position:sticky; top:0; z-index:50;
+  background:#fff; border-bottom:1px solid var(--line);
+  display:flex; overflow-x:auto; gap:2px; padding:0 4vw;
+  box-shadow:0 1px 0 rgba(0,0,0,0.02);
+}
+nav.tabs button{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  border:none; background:none; cursor:pointer;
+  padding:16px 16px; font-size:13.5px; font-weight:600; color:var(--ink-soft);
+  white-space:nowrap; border-bottom:3px solid transparent;
+  transition:.15s;
+}
+nav.tabs button:hover{color:var(--purple);}
+nav.tabs button.active{color:var(--purple); border-bottom-color:var(--orange);}
+
+/* ---------- LAYOUT ---------- */
+main{max-width:1180px; margin:0 auto; padding:34px 5vw 90px;}
+section.panel{display:none;}
+section.panel.active{display:block; animation:fade .25s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+h2.sec-title{font-size:22px; font-weight:800; margin:0 0 6px; display:flex; align-items:center; gap:10px;}
+h2.sec-title .tag{
+  font-size:11px; background:var(--purple-light); color:var(--purple); padding:3px 10px;
+  border-radius:20px; font-weight:700; letter-spacing:.03em;
+}
+p.sec-desc{color:var(--ink-soft); font-size:14.5px; max-width:820px; margin:0 0 26px;}
+
+.grid{display:grid; gap:18px;}
+.grid.cols-2{grid-template-columns:1fr 1fr;}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.grid.cols-4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:900px){.grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr;}}
+
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px 22px; box-shadow:var(--shadow);
+}
+.card h3{font-size:15px; margin:0 0 4px; font-weight:700;}
+.card .card-sub{font-size:12.5px; color:var(--ink-soft); margin-bottom:14px;}
+.card canvas{max-height:280px;}
+
+/* callouts */
+.callout{
+  border-radius:var(--radius); padding:16px 20px; margin:16px 0; font-size:14px;
+  border-left:4px solid; display:flex; gap:12px; align-items:flex-start;
+}
+.callout .ic{font-size:18px; line-height:1.3;}
+.callout.insight{background:var(--teal-light); border-color:var(--teal);}
+.callout.warn{background:var(--orange-light); border-color:var(--orange);}
+.callout.critical{background:var(--red-light); border-color:var(--red);}
+.callout.good{background:var(--green-light); border-color:var(--green);}
+.callout b{color:var(--ink);}
+.callout p{margin:4px 0 0;}
+
+/* KPI mini cards */
+.stat{
+  background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px;
+}
+.stat .n{font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:26px; color:var(--purple-deep);}
+.stat .l{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+.stat .n.orange{color:var(--orange);}
+.stat .n.teal{color:var(--teal);}
+.stat .n.red{color:var(--red);}
+
+/* table */
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{
+  text-align:left; font-family:'Plus Jakarta Sans',sans-serif; font-size:11.5px; text-transform:uppercase;
+  letter-spacing:.04em; color:var(--ink-soft); padding:9px 10px; border-bottom:2px solid var(--line);
+  background:#FBFAFD; position:sticky; top:0;
+}
+td{padding:10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+tr:hover td{background:#FAF7FF;}
+td.num, th.num{text-align:right; font-variant-numeric:tabular-nums;}
+.pill{
+  display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:700;
+}
+.pill.hi{background:var(--red-light); color:var(--red);}
+.pill.mid{background:var(--orange-light); color:#B8620E;}
+.pill.lo{background:var(--green-light); color:var(--green);}
+.pill.gray{background:#EEECF5; color:var(--ink-soft);}
+.bar-cell{position:relative; background:#F1EEF8; border-radius:6px; overflow:hidden; height:20px; min-width:80px;}
+.bar-fill{position:absolute; left:0; top:0; bottom:0; background:var(--purple); border-radius:6px;}
+.bar-fill.teal{background:var(--teal);}
+.bar-fill.orange{background:var(--orange);}
+.bar-fill.red{background:var(--red);}
+.bar-label{position:absolute; right:6px; top:0; bottom:0; display:flex; align-items:center; font-size:11px; font-weight:700; color:var(--ink);}
+
+.tablewrap{overflow-x:auto; border-radius:12px; border:1px solid var(--line);}
+
+.section-divider{margin:44px 0 26px; border:none; border-top:1px dashed var(--line);}
+
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 0;}
+.chip{
+  background:var(--purple-light); color:var(--purple-deep); padding:6px 13px; border-radius:20px;
+  font-size:12.5px; font-weight:600;
+}
+
+.two-col-text{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
+@media(max-width:900px){.two-col-text{grid-template-columns:1fr;}}
+
+.answer-box{
+  background:linear-gradient(135deg,#fff,#FAF7FF); border:1.5px solid var(--purple-light);
+  border-radius:var(--radius); padding:18px 22px; margin-bottom:16px;
+}
+.answer-box .q{font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:14.5px; color:var(--purple-deep); margin-bottom:6px;}
+.answer-box .a{font-size:14px;}
+.answer-box .a b{color:var(--ink);}
+
+.badge-num{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:24px; height:24px; border-radius:50%; background:var(--purple); color:#fff;
+  font-size:12px; font-weight:800; margin-right:8px; flex-shrink:0;
+}
+
+footer.foot{
+  text-align:center; padding:30px; font-size:12px; color:var(--ink-soft); border-top:1px solid var(--line);
+}
+
+.legend-row{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:12px; color:var(--ink-soft);}
+.legend-row span{display:inline-flex; align-items:center; gap:6px;}
+.legend-dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+.methodology-item{display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--line);}
+.methodology-item:last-child{border-bottom:none;}
+.methodology-item .m-ic{font-size:20px;}
+.methodology-item h4{margin:0 0 4px; font-size:14px;}
+.methodology-item p{margin:0; font-size:13.5px; color:var(--ink-soft);}
+
+.action-card{
+  border:1px solid var(--line); border-radius:12px; padding:16px 18px; background:#fff;
+  border-left:4px solid var(--purple);
+}
+.action-card.prio1{border-left-color:var(--green);}
+.action-card.prio2{border-left-color:var(--orange);}
+.action-card.prio3{border-left-color:var(--red);}
+.action-card .a-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.action-card h4{margin:0; font-size:14.5px;}
+.action-card .a-n{font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:20px; color:var(--purple-deep); white-space:nowrap;}
+.action-card p{font-size:13px; color:var(--ink-soft); margin:8px 0 0;}
+.action-card .tags{margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;}
+.action-card .tags span{font-size:10.5px; background:var(--purple-light); color:var(--purple-deep); padding:3px 8px; border-radius:6px; font-weight:700;}
+
+@media(max-width:700px){
+  .grid.cols-2, .grid.cols-3, .grid.cols-4{grid-template-columns:1fr;}
+  main{padding:24px 4vw 70px;}
+}
+</style>
+<style>
+.upload-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:16px;}
+.upload-slot{
+  border:2px dashed var(--line); border-radius:14px; padding:16px 18px; background:#FBFAFD;
+  transition:.15s; cursor:pointer; position:relative;
+}
+.upload-slot:hover{border-color:var(--purple);}
+.upload-slot.filled{border-style:solid; border-color:var(--teal); background:var(--teal-light);}
+.upload-slot.optional{border-color:#C9C4DC;}
+.upload-slot h4{margin:0 0 4px; font-size:13.5px; font-family:'Plus Jakarta Sans',sans-serif; color:var(--purple-deep);}
+.upload-slot .req-cols{font-size:11px; color:var(--ink-soft); margin:4px 0 8px;}
+.upload-slot .status{font-size:12px; font-weight:700;}
+.upload-slot .status.empty{color:var(--ink-soft);}
+.upload-slot .status.ok{color:var(--green);}
+.upload-slot .status.err{color:var(--red);}
+.upload-slot input[type=file]{position:absolute; inset:0; opacity:0; cursor:pointer;}
+.upload-slot .opt-tag{position:absolute; top:10px; right:12px; font-size:9.5px; font-weight:800; color:var(--ink-soft); background:#EFECF6; padding:2px 8px; border-radius:10px;}
+
+.map-table{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:10px;}
+.map-table th, .map-table td{padding:8px 10px; border-bottom:1px solid var(--line); text-align:left;}
+.map-table select{font-family:'Archivo',sans-serif; font-size:12.5px; padding:5px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; width:100%;}
+.map-table select.warn-select{border-color:var(--orange);}
+
+.seg-card{border:1px solid var(--line); border-radius:14px; padding:16px 18px; background:#fff; box-shadow:var(--shadow); margin-bottom:14px;}
+.seg-card h4{margin:0 0 10px; font-size:14.5px; font-family:'Plus Jakarta Sans',sans-serif; color:var(--purple-deep); display:flex; justify-content:space-between; align-items:center; gap:10px;}
+.seg-card .seg-n{font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:22px; color:var(--purple-deep);}
+.seg-card.teal h4, .seg-card.teal .seg-n{color:var(--teal);}
+.seg-card .dl-btn{
+  font-family:'Archivo',sans-serif; font-size:11.5px; font-weight:700; color:#fff; background:var(--purple);
+  border:none; border-radius:20px; padding:6px 14px; cursor:pointer; white-space:nowrap;
+}
+.seg-card.teal .dl-btn{background:var(--teal);}
+.seg-card .dl-btn:hover{opacity:.85;}
+.seg-card p{font-size:12px; color:var(--ink-soft); margin:0;}
+
+.log-box{
+  background:#1D1B2E; color:#D5D0E8; font-family:monospace; font-size:11.5px; border-radius:10px;
+  padding:14px 16px; max-height:220px; overflow-y:auto; white-space:pre-wrap; line-height:1.6;
+}
+.progress-bar{height:6px; background:var(--purple-light); border-radius:4px; overflow:hidden; margin:10px 0;}
+.progress-bar .fill{height:100%; background:var(--purple); width:0%; transition:.3s;}
+
+.spinner{display:inline-block; width:14px; height:14px; border:2px solid var(--purple-light); border-top-color:var(--purple); border-radius:50%; animation:spin .8s linear infinite; vertical-align:middle; margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">Clube do Assinante GZH · Ferramenta de Segmentação</div>
+  <h1 class="title">Carregue as planilhas, gere todas as bases de comunicação automaticamente</h1>
+  <p class="subtitle">Aplica as regras de Ativação/Reativação, Plano Família, canais (e-mail, WhatsApp, push, site, newsletter) e mídia paga já validadas. Onboarding estendido não entra aqui — já roda automático.</p>
+</header>
+
+<main id="mainContent" style="max-width:1200px; margin:0 auto; padding:24px 20px 60px;"></main>
+
+<footer class="foot">Clube do Assinante GZH — Ferramenta de geração de segmentações. Processamento 100% local no seu navegador — nenhum arquivo é enviado a servidor externo.</footer>
+
+<script>
+// ============================================================
+// BACKEND — Google Apps Script (substitui o armazenamento do Claude,
+// para o app funcionar hospedado no GitHub Pages, fora do claude.ai)
+// ============================================================
+// 1. Implante o Code.gs (arquivo separado) como App da Web no Google Apps Script.
+// 2. Cole a URL de implantação (termina em /exec) na linha abaixo.
+const APPS_SCRIPT_URL = 'COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT/exec';
+
+function isAppsScriptConfigured(){
+  return APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf('COLE_AQUI') === -1;
+}
+
+window.storage = {
+  get: async function(key, shared){
+    if(!isAppsScriptConfigured()) return null;
+    const url = APPS_SCRIPT_URL + '?action=get&key=' + encodeURIComponent(key) + '&_=' + Date.now();
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    if(data.value === null || data.value === undefined) return null;
+    return { key: key, value: data.value, shared: !!shared };
+  },
+  set: async function(key, value, shared){
+    if(!isAppsScriptConfigured()) throw new Error('Backend n\u00e3o configurado (APPS_SCRIPT_URL).');
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
+      body: JSON.stringify({ action:'set', key: key, value: value })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    return { key: key, value: value, shared: !!shared };
+  },
+  delete: async function(key, shared){
+    if(!isAppsScriptConfigured()) return null;
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'delete', key: key })
+    });
+    const data = await res.json();
+    return { key: key, deleted: true, shared: !!shared };
+  },
+  list: async function(prefix, shared){
+    if(!isAppsScriptConfigured()) return { keys: [], shared: !!shared };
+    const url = APPS_SCRIPT_URL + '?action=list&prefix=' + encodeURIComponent(prefix||'') + '&_=' + Date.now();
+    const res = await fetch(url);
+    const data = await res.json();
+    return { keys: data.keys || [], shared: !!shared };
+  }
+};
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+const STATE = {
+  files: {},
+  master: null,
+  segments: null,
+  log: []
+};
+
+function logMsg(msg){
+  STATE.log.push(msg);
+  const el = document.getElementById('logBox');
+  if(el){ el.textContent = STATE.log.join('\n'); el.scrollTop = el.scrollHeight; }
+}
+
+// ============================================================
+// CONFIGURAÇÃO DOS SLOTS DE UPLOAD
+// ============================================================
+const SLOTS = [
+  { id:'carteira', label:'Carteira Total', desc:'Dados cadastrais + campos já calculados (ATIVAÇÃO, REATIVAÇÃO, vouchers 2026, tempo de casa segmentado)', required:true,
+    fields:[
+      {key:'cpf', label:'CPF', keywords:['cpf']},
+      {key:'nome', label:'Nome', keywords:['nome']},
+      {key:'idade', label:'Idade', keywords:['idade']},
+      {key:'cidade', label:'Cidade', keywords:['cidade']},
+      {key:'data_assinatura', label:'Data de Assinatura', keywords:['data de assinatura','data assinatura']},
+      {key:'meses_assinatura', label:'Meses de Assinatura (número)', keywords:['meses de assinatura','meses assinatura']},
+      {key:'tempo_casa_seg', label:'Tempo de Casa (já segmentado, opcional)', keywords:['tempo de casa','faixa tempo de casa','segmento tempo de casa'], optional:true},
+      {key:'ativacao', label:'ATIVAÇÃO (SIM/NÃO, opcional)', keywords:['ativação','ativacao'], optional:true},
+      {key:'reativacao', label:'REATIVAÇÃO (SIM/NÃO, opcional)', keywords:['reativação','reativacao'], optional:true},
+      {key:'vouchers2026_qtd', label:'Qtd. Vouchers 2026 (opcional)', keywords:['vouchers 2026','qtd vouchers 2026','quantidade de vouchers em 2026','gerou voucher em 2026'], optional:true},
+    ]},
+  { id:'clube', label:'Base Clube / Plano Família', desc:'CPF com direito ao Clube + status do Plano Família', required:true,
+    fields:[
+      {key:'cpf', label:'CPF', keywords:['cpf']},
+      {key:'status_pf', label:'Status Plano Família', keywords:['plano família','plano familia','status plano']},
+    ]},
+  { id:'voucher2023', label:'Geração de Voucher 2023', desc:'Opcional — CPF + Marca do parceiro. Usada para status Ativação/Reativação e para recomendação de argumentos', required:false,
+    fields:[ {key:'cpf', label:'CPF', keywords:['cpf']}, {key:'marca', label:'Marca / Parceiro', keywords:['marca','parceiro'], optional:true} ]},
+  { id:'voucher2024', label:'Geração de Voucher 2024', desc:'Opcional — mesmo caso do 2023', required:false,
+    fields:[ {key:'cpf', label:'CPF', keywords:['cpf']}, {key:'marca', label:'Marca / Parceiro', keywords:['marca','parceiro'], optional:true} ]},
+  { id:'voucher2025', label:'Geração de Voucher 2025', desc:'Opcional — mesmo caso do 2023', required:false,
+    fields:[ {key:'cpf', label:'CPF', keywords:['cpf']}, {key:'marca', label:'Marca / Parceiro', keywords:['marca','parceiro'], optional:true} ]},
+  { id:'voucher2026', label:'Geração de Voucher 2026', desc:'Opcional se a Carteira já tiver a coluna de quantidade de vouchers 2026. Inclua a coluna de Data para poder filtrar por mês específico', required:false,
+    fields:[ {key:'cpf', label:'CPF', keywords:['cpf']}, {key:'marca', label:'Marca / Parceiro', keywords:['marca','parceiro'], optional:true}, {key:'data', label:'Data do voucher (para filtro por mês)', keywords:['data','date'], optional:true} ]},
+  { id:'canais', label:'Base de Canais', desc:'CPF + pode receber e-mail, está na newsletter, usa app, usa site, push/in-app (se tiver coluna própria)', required:true,
+    fields:[
+      {key:'cpf', label:'CPF', keywords:['cpf']},
+      {key:'email', label:'Está na base de e-mail', keywords:['email','e-mail']},
+      {key:'newsletter', label:'Está na Newsletter', keywords:['newsletter']},
+      {key:'app', label:'Usa App', keywords:['usa app','app']},
+      {key:'push_precalc', label:'Push / In-app (coluna própria, opcional)', keywords:['push','in-app','inapp'], optional:true},
+      {key:'site', label:'Usa Site', keywords:['usa site','site']},
+    ]},
+  { id:'whatsapp', label:'Base de WhatsApp', desc:'CPF + pode receber WhatsApp (opcional — se não tiver, seguimos sem esse canal)', required:false,
+    fields:[
+      {key:'cpf', label:'CPF', keywords:['cpf']},
+      {key:'whatsapp', label:'Está na base de WhatsApp', keywords:['whatsapp']},
+    ]},
+];
+
+// ============================================================
+// RENDER — TELA DE UPLOAD
+// ============================================================
+function renderUploadScreen(){
+  const grid = SLOTS.map(function(s){
+    const filled = STATE.files[s.id];
+    const statusClass = filled ? 'ok' : 'empty';
+    const statusText = filled ? ('\u2713 ' + filled.name + ' \u2014 ' + filled.rows.length + ' linhas') : 'Nenhum arquivo selecionado';
+    return '<div class="upload-slot ' + (filled?'filled':'') + (s.required?'':' optional') + '" id="slot-'+s.id+'">' +
+      (s.required ? '' : '<span class="opt-tag">OPCIONAL</span>') +
+      '<h4>' + s.label + '</h4>' +
+      '<div class="req-cols">' + s.desc + '</div>' +
+      '<div class="status ' + statusClass + '" id="status-'+s.id+'">' + statusText + '</div>' +
+      '<input type="file" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(\'' + s.id + '\', this)">' +
+      '</div>';
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML =
+    '<section class="panel active">' +
+    '<h2 class="sec-title">Passo 1 \u2014 Carregar planilhas</h2>' +
+    '<p class="sec-desc">Clique em cada quadro para selecionar o arquivo correspondente. Tudo \u00e9 processado localmente no seu navegador.</p>' +
+    '<div class="upload-grid">' + grid + '</div>' +
+    '<div id="uploadActions" style="margin-top:24px;"></div>' +
+    '<div style="margin-top:20px;"><h3 style="font-size:13px; color:var(--ink-soft);">Log</h3><div class="log-box" id="logBox">' + STATE.log.join('\n') + '</div></div>' +
+    '</section>';
+  updateUploadActions();
+}
+
+function updateUploadActions(){
+  const requiredSlots = SLOTS.filter(function(s){return s.required;});
+  const allRequiredFilled = requiredSlots.every(function(s){return STATE.files[s.id];});
+  const el = document.getElementById('uploadActions');
+  if(!el) return;
+  if(allRequiredFilled){
+    el.innerHTML = '<button class="dl-btn" style="font-size:14px; padding:12px 28px;" onclick="goToMapping()">Continuar para confer\u00eancia de colunas \u2192</button>';
+  } else {
+    const missing = requiredSlots.filter(function(s){return !STATE.files[s.id];}).map(function(s){return s.label;}).join(', ');
+    el.innerHTML = '<p style="font-size:12.5px; color:var(--ink-soft);">Faltam arquivos obrigat\u00f3rios: ' + missing + '</p>';
+  }
+}
+
+// ============================================================
+// PARSING DE ARQUIVOS (SheetJS)
+// ============================================================
+function normalizeHeader(h){
+  return String(h).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // remove acentos
+    .replace(/[_\-]/g,' ')
+    .trim();
+}
+
+function guessColumn(headers, keywords){
+  const normHeaders = headers.map(normalizeHeader);
+  for(let kw of keywords){
+    const kwNorm = normalizeHeader(kw);
+    const idx = normHeaders.findIndex(function(h){ return h === kwNorm; });
+    if(idx >= 0) return headers[idx];
+  }
+  for(let kw of keywords){
+    const kwNorm = normalizeHeader(kw);
+    const idx = normHeaders.findIndex(function(h){ return h.indexOf(kwNorm) >= 0; });
+    if(idx >= 0) return headers[idx];
+  }
+  return null;
+}
+
+function handleFileUpload(slotId, inputEl){
+  const file = inputEl.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('status-'+slotId);
+  const slotEl = document.getElementById('slot-'+slotId);
+  statusEl.className = 'status empty';
+  statusEl.innerHTML = '<span class="spinner"></span>Lendo arquivo...';
+  logMsg('Lendo ' + file.name + ' (slot: ' + slotId + ')...');
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:null, raw:true});
+      if(rows.length === 0){
+        throw new Error('Planilha vazia ou sem cabe\u00e7alho reconhec\u00edvel.');
+      }
+      const headers = Object.keys(rows[0]);
+
+      // auto-detectar mapeamento de colunas
+      const slotConfig = SLOTS.find(function(s){return s.id===slotId;});
+      const mapping = {};
+      slotConfig.fields.forEach(function(f){
+        mapping[f.key] = guessColumn(headers, f.keywords);
+      });
+
+      STATE.files[slotId] = { name: file.name, headers: headers, rows: rows, mapping: mapping, sheetName: sheetName, sheetCount: wb.SheetNames.length };
+      statusEl.className = 'status ok';
+      statusEl.innerHTML = '\u2713 ' + file.name + ' \u2014 ' + rows.length + ' linhas';
+      slotEl.classList.add('filled');
+      logMsg('  \u2192 ' + rows.length + ' linhas, ' + headers.length + ' colunas detectadas.');
+      const unmapped = slotConfig.fields.filter(function(f){return !mapping[f.key];});
+      if(unmapped.length){
+        logMsg('  \u26a0 N\u00e3o consegui identificar automaticamente: ' + unmapped.map(function(f){return f.label;}).join(', ') + ' (confira na pr\u00f3xima etapa)');
+      }
+      updateUploadActions();
+    }catch(err){
+      statusEl.className = 'status err';
+      statusEl.textContent = 'Erro: ' + err.message;
+      logMsg('  \u2717 ERRO ao ler ' + file.name + ': ' + err.message);
+    }
+  };
+  reader.onerror = function(){
+    statusEl.className = 'status err';
+    statusEl.textContent = 'Erro ao ler o arquivo.';
+    logMsg('  \u2717 ERRO ao ler arquivo (FileReader).');
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============================================================
+// TELA 2 — CONFERÊNCIA DE MAPEAMENTO DE COLUNAS
+// ============================================================
+function goToMapping(){
+  const sections = SLOTS.filter(function(s){ return STATE.files[s.id]; }).map(function(s){
+    const fileInfo = STATE.files[s.id];
+    const rows = s.fields.map(function(f){
+      const current = fileInfo.mapping[f.key];
+      const options = fileInfo.headers.map(function(h){
+        const sel = (h === current) ? 'selected' : '';
+        return '<option value="'+h+'" '+sel+'>'+h+'</option>';
+      }).join('');
+      const naOption = '<option value="" ' + (current?'':'selected') + '>(n\u00e3o encontrado)</option>';
+      const warnClass = (current || f.optional) ? '' : 'warn-select';
+      const optTag = f.optional ? ' <span style="font-size:10px; color:var(--ink-soft);">(opcional)</span>' : '';
+      return '<tr><td><b>'+f.label+'</b>'+optTag+'</td><td><select class="'+warnClass+'" onchange="updateMapping(\''+s.id+'\',\''+f.key+'\',this.value)">' + naOption + options + '</select></td></tr>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:16px;"><h3>'+s.label+' <span style="font-weight:400; font-size:12px; color:var(--ink-soft);">('+fileInfo.name+', '+fileInfo.rows.length+' linhas)</span></h3>' +
+      '<table class="map-table"><thead><tr><th>Campo esperado</th><th>Coluna no arquivo</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML =
+    '<section class="panel active">' +
+    '<h2 class="sec-title">Passo 2 \u2014 Conferir mapeamento de colunas</h2>' +
+    '<p class="sec-desc">Detectei automaticamente as colunas mais prov\u00e1veis. Confira e corrija onde necess\u00e1rio, especialmente os campos marcados em laranja.</p>' +
+    sections +
+    '<div style="display:flex; gap:12px; margin-top:20px;">' +
+    '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">\u2190 Voltar</button>' +
+    '<button class="dl-btn" style="font-size:14px; padding:12px 28px;" onclick="processAll()">Processar bases e gerar segmenta\u00e7\u00f5es \u2192</button>' +
+    '</div>' +
+    '</section>';
+}
+
+function updateMapping(slotId, fieldKey, value){
+  STATE.files[slotId].mapping[fieldKey] = value || null;
+}
+
+// ============================================================
+// FUNÇÕES DE NEGÓCIO
+// ============================================================
+function normalizeCPF(val){
+  if(val === null || val === undefined) return null;
+  let s = String(val).replace(/\D/g,'');
+  if(s.length === 0) return null;
+  // remove zeros à esquerda para comparar de forma consistente, depois repadeia
+  s = s.replace(/^0+/,'') || '0';
+  while(s.length < 11) s = '0' + s;
+  return s;
+}
+
+function parseBoolField(val){
+  if(val === null || val === undefined) return false;
+  const s = String(val).trim().toLowerCase();
+  return (s === 'sim' || s === 'yes' || s === 'true' || s === '1' || s === 'x');
+}
+
+function getGeracao(idade){
+  const n = Number(idade);
+  if(idade === null || idade === undefined || isNaN(n)) return null;
+  if(n === 126) return null; // bug de sentinela conhecido
+  if(n < 14 || n > 100) return null; // fora da faixa plaus\u00edvel
+  if(n <= 29) return 'Gen Z';
+  if(n <= 45) return 'Millennials';
+  if(n <= 61) return 'Gen X';
+  if(n <= 80) return 'Baby Boomers';
+  return 'Pr\u00e9-Boomer';
+}
+
+function getEmailGrupo(geracao){
+  if(geracao === 'Gen Z' || geracao === 'Millennials') return 1;
+  return 2; // Gen X, Baby Boomers, Pr\u00e9-Boomer, ou sem idade v\u00e1lida
+}
+
+// Regra oficial validada: Ativa\u00e7\u00e3o = nunca gerou. Reativa\u00e7\u00e3o = gerou em algum ano 2023-25,
+// n\u00e3o gerou 2026, EXCETO se foi ativo 2023 E 2024 E 2025 juntos (nesse caso vira Ativo 2026/verificar).
+function getStatus3(g23,g24,g25,g26){
+  const nenhum = !g23 && !g24 && !g25 && !g26;
+  if(nenhum) return 'ATIVACAO';
+  if(!g26){
+    const todos3 = g23 && g24 && g25;
+    if(!todos3 && (g23||g24||g25)) return 'REATIVACAO';
+  }
+  return 'ATIVO_2026';
+}
+
+function parseMesesAssinatura(val, dataAssinatura){
+  const n = Number(val);
+  if(val !== null && val !== undefined && !isNaN(n)) return n;
+  // fallback: calcular a partir da data de assinatura, se poss\u00edvel
+  if(dataAssinatura){
+    const d = new Date(dataAssinatura);
+    if(!isNaN(d.getTime())){
+      const hoje = new Date();
+      return (hoje.getFullYear()-d.getFullYear())*12 + (hoje.getMonth()-d.getMonth());
+    }
+  }
+  return null;
+}
+
+function getGeoBucket(cidade){
+  if(!cidade) return 'N\u00e3o informado';
+  const c = String(cidade).trim().toUpperCase();
+  if(c === '' || c.indexOf('NAO INFORMADO') >= 0 || c.indexOf('N\u00c3O INFORMADO') >= 0) return 'N\u00e3o informado';
+  if(c === 'PORTO ALEGRE') return 'Porto Alegre (Capital)';
+  return 'Interior';
+}
+
+function getTempoCasaBucket(meses){
+  if(meses === null || meses === undefined || isNaN(meses)) return null;
+  if(meses < 12) return '< 1 ano';
+  if(meses < 36) return '1-3 anos';
+  if(meses < 60) return '3-5 anos';
+  if(meses < 120) return '5-10 anos';
+  return '10+ anos';
+}
+
+// ============================================================
+// CATEGORIZAÇÃO DE MARCA \u2192 CATEGORIA (mesmo dicion\u00e1rio validado nas an\u00e1lises anteriores)
+// ============================================================
+const MARCA_CATEGORIA = {
+  'Opini\u00e3o Produtora':'Shows & Eventos', 'Opus Entretenimento':'Shows & Eventos',
+  'Little John Entretenimento':'Shows & Eventos', 'Mirage Circus':'Shows & Eventos',
+  'Eduardo Holmes Produ\u00e7\u00f5es':'Shows & Eventos', 'Grupo Prime':'Shows & Eventos',
+  'Gana&Voga':'Shows & Eventos', 'Live Nation Brasil':'Shows & Eventos',
+  'Hard Rock Caf\u00e9 Porto Alegre':'Shows & Eventos',
+  'GNC Cinemas':'Cinema', 'Arcoplex Cinemas RS':'Cinema',
+  'La\u00e7ador de Ofertas':'Ofertas & Marketplace', 'Proxy Media':'Ofertas & Marketplace',
+  'SponsorB':'Ofertas & Marketplace', 'Hubconn':'Ofertas & Marketplace',
+  'Clube do Assinante':'A\u00e7\u00f5es Pr\u00f3prias do Clube', 'GZH':'A\u00e7\u00f5es Pr\u00f3prias do Clube',
+  'SIM Rede de Postos':'Combust\u00edvel',
+  'Droga Raia':'Farm\u00e1cia', 'Farm\u00e1cias Pague Menos':'Farm\u00e1cia',
+  '99':'Transporte por app', 'Uber para Empresas':'Transporte por app',
+  'Via\u00e7\u00e3o Ouro e Prata':'Transporte rodovi\u00e1rio', 'Unesul de Transportes LTDA':'Transporte rodovi\u00e1rio',
+  'CatSul':'Transporte rodovi\u00e1rio',
+  'Petiskeira':'Alimenta\u00e7\u00e3o',
+  'PUCRS':'Educa\u00e7\u00e3o & Cultura', 'Ospa':'Educa\u00e7\u00e3o & Cultura',
+  'Marina Park':'Lazer & Parque',
+};
+function getCategoria(marca){
+  if(!marca) return 'Outros';
+  return MARCA_CATEGORIA[String(marca).trim()] || 'Outros';
+}
+
+// ============================================================
+// PROCESSAMENTO PRINCIPAL
+// ============================================================
+function renderProgressScreen(){
+  document.getElementById('mainContent').innerHTML =
+    '<section class="panel active">' +
+    '<h2 class="sec-title"><span class="spinner"></span>Processando bases...</h2>' +
+    '<div class="progress-bar"><div class="fill" id="progFill" style="width:5%;"></div></div>' +
+    '<div class="log-box" id="logBox">' + STATE.log.join('\n') + '</div>' +
+    '</section>';
+}
+
+function setProgress(pct){
+  const el = document.getElementById('progFill');
+  if(el) el.style.width = pct + '%';
+}
+
+function buildCpfSetFromRows(rows, cpfCol){
+  const set = new Set();
+  rows.forEach(function(r){
+    const cpf = normalizeCPF(r[cpfCol]);
+    if(cpf) set.add(cpf);
+  });
+  return set;
+}
+
+function buildCpfCountFromRows(rows, cpfCol){
+  const map = new Map();
+  rows.forEach(function(r){
+    const cpf = normalizeCPF(r[cpfCol]);
+    if(!cpf) return;
+    map.set(cpf, (map.get(cpf)||0)+1);
+  });
+  return map;
+}
+
+async function processAll(){
+  renderProgressScreen();
+  await new Promise(function(r){ setTimeout(r, 50); }); // deixa a tela renderizar antes de travar a thread
+
+  STATE.log = [];
+  logMsg('Iniciando processamento...');
+  setProgress(10);
+
+  const carteiraFile = STATE.files['carteira'];
+  const clubeFile = STATE.files['clube'];
+  const canaisFile = STATE.files['canais'];
+  const waFile = STATE.files['whatsapp'];
+  const v23 = STATE.files['voucher2023'], v24 = STATE.files['voucher2024'], v25 = STATE.files['voucher2025'], v26 = STATE.files['voucher2026'];
+
+  // ---- conjuntos de geração de voucher por ano (só se o arquivo foi enviado) ----
+  const set23 = v23 ? buildCpfSetFromRows(v23.rows, v23.mapping.cpf) : null;
+  const set24 = v24 ? buildCpfSetFromRows(v24.rows, v24.mapping.cpf) : null;
+  const set25 = v25 ? buildCpfSetFromRows(v25.rows, v25.mapping.cpf) : null;
+  const set26 = v26 ? buildCpfSetFromRows(v26.rows, v26.mapping.cpf) : null;
+  const count26 = v26 ? buildCpfCountFromRows(v26.rows, v26.mapping.cpf) : null;
+  if(v23) logMsg('Vouchers 2023: ' + set23.size + ' CPFs \u00fanicos'); else logMsg('Vouchers 2023: arquivo n\u00e3o enviado (filtro por ano espec\u00edfico ficar\u00e1 indispon\u00edvel para 2023).');
+  if(v24) logMsg('Vouchers 2024: ' + set24.size + ' CPFs \u00fanicos'); else logMsg('Vouchers 2024: arquivo n\u00e3o enviado.');
+  if(v25) logMsg('Vouchers 2025: ' + set25.size + ' CPFs \u00fanicos'); else logMsg('Vouchers 2025: arquivo n\u00e3o enviado.');
+  if(v26) logMsg('Vouchers 2026: ' + set26.size + ' CPFs \u00fanicos'); else logMsg('Vouchers 2026: arquivo n\u00e3o enviado.');
+  setProgress(25);
+
+  // ---- transações de voucher (marca + categoria) para recomendação de argumentos ----
+  const voucherTransactions = [];
+  [[v23,2023],[v24,2024],[v25,2025],[v26,2026]].forEach(function(pair){
+    const file = pair[0], ano = pair[1];
+    if(!file || !file.mapping.marca) return;
+    file.rows.forEach(function(r){
+      const cpf = normalizeCPF(r[file.mapping.cpf]);
+      if(!cpf) return;
+      const marca = r[file.mapping.marca];
+      if(!marca) return;
+      voucherTransactions.push({ cpf: cpf, marca: String(marca).trim(), categoria: getCategoria(marca), ano: ano });
+    });
+  });
+  STATE.voucherTransactions = voucherTransactions;
+  if(voucherTransactions.length){
+    logMsg('Transa\u00e7\u00f5es de voucher com marca identificada: ' + voucherTransactions.length + ' \u2014 dispon\u00edvel para recomenda\u00e7\u00e3o de argumentos.');
+  } else {
+    logMsg('Nenhuma coluna de Marca mapeada nos arquivos de voucher \u2014 recomenda\u00e7\u00e3o de argumentos ficar\u00e1 indispon\u00edvel.');
+  }
+
+  // ---- meses espec\u00edficos de gera\u00e7\u00e3o em 2026 (para filtro "gerou em agosto/2026" etc) ----
+  const meses2026PorCpf = new Map(); // cpf -> Set de meses (1-12)
+  let temDataMes2026 = false;
+  if(v26 && v26.mapping.data){
+    temDataMes2026 = true;
+    v26.rows.forEach(function(r){
+      const cpf = normalizeCPF(r[v26.mapping.cpf]);
+      if(!cpf) return;
+      const rawDate = r[v26.mapping.data];
+      if(!rawDate) return;
+      let mes = null;
+      if(rawDate instanceof Date){
+        mes = rawDate.getMonth()+1;
+      } else {
+        const parsed = new Date(rawDate);
+        if(!isNaN(parsed.getTime())) mes = parsed.getMonth()+1;
+      }
+      if(!mes) return;
+      if(!meses2026PorCpf.has(cpf)) meses2026PorCpf.set(cpf, new Set());
+      meses2026PorCpf.get(cpf).add(mes);
+    });
+    logMsg('Datas de 2026 processadas \u2014 filtro por m\u00eas espec\u00edfico de 2026 dispon\u00edvel (' + meses2026PorCpf.size + ' CPFs com pelo menos 1 m\u00eas identificado).');
+  } else if(v26){
+    logMsg('Arquivo de voucher 2026 enviado sem coluna de Data mapeada \u2014 filtro por m\u00eas espec\u00edfico de 2026 ficar\u00e1 indispon\u00edvel.');
+  }
+
+  // ---- master a partir da Carteira Total ----
+  const master = new Map();
+  const cm = carteiraFile.mapping;
+  const temAtivacaoPreCalc = !!cm.ativacao;
+  const temReativacaoPreCalc = !!cm.reativacao;
+  const temVouchers2026PreCalc = !!cm.vouchers2026_qtd;
+  const temTempoCasaSeg = !!cm.tempo_casa_seg;
+  logMsg('Colunas pr\u00e9-calculadas detectadas na Carteira: ' +
+    (temAtivacaoPreCalc?'ATIVA\u00c7\u00c3O ':'') + (temReativacaoPreCalc?'REATIVA\u00c7\u00c3O ':'') +
+    (temVouchers2026PreCalc?'QTD VOUCHERS 2026 ':'') + (temTempoCasaSeg?'TEMPO DE CASA SEGMENTADO':'') +
+    (!temAtivacaoPreCalc && !temReativacaoPreCalc && !temVouchers2026PreCalc && !temTempoCasaSeg ? '(nenhuma \u2014 tudo ser\u00e1 calculado a partir dos arquivos de voucher por ano)' : ''));
+
+  carteiraFile.rows.forEach(function(r){
+    const cpf = normalizeCPF(r[cm.cpf]);
+    if(!cpf) return;
+    const idade = cm.idade ? r[cm.idade] : null;
+    const geracao = getGeracao(idade);
+    const meses = parseMesesAssinatura(cm.meses_assinatura ? r[cm.meses_assinatura] : null, cm.data_assinatura ? r[cm.data_assinatura] : null);
+    master.set(cpf, {
+      cpf: cpf,
+      nome: cm.nome ? r[cm.nome] : null,
+      idade: idade,
+      geracao: geracao,
+      email_grupo: getEmailGrupo(geracao),
+      cidade: cm.cidade ? r[cm.cidade] : null,
+      geo: getGeoBucket(cm.cidade ? r[cm.cidade] : null),
+      meses_assinatura: meses,
+      tempo_casa_bucket: temTempoCasaSeg ? (r[cm.tempo_casa_seg] || null) : getTempoCasaBucket(meses),
+      status_pf: null, email: false, newsletter: false, app: false, site: false, whatsapp: false,
+      g23:false, g24:false, g25:false, g26:false, vouchers2026: 0,
+      status3: null,
+      ativacao_pre: temAtivacaoPreCalc ? parseBoolField(r[cm.ativacao]) : null,
+      reativacao_pre: temReativacaoPreCalc ? parseBoolField(r[cm.reativacao]) : null,
+    });
+    if(temVouchers2026PreCalc){
+      const n = Number(r[cm.vouchers2026_qtd]);
+      master.get(cpf).vouchers2026 = isNaN(n) ? 0 : n;
+    }
+  });
+  logMsg('Carteira Total: ' + master.size + ' CPFs carregados como base.');
+  setProgress(40);
+
+  // ---- enriquecer com Clube / Plano Fam\u00edlia ----
+  const clm = clubeFile.mapping;
+  let clubeMatched = 0;
+  clubeFile.rows.forEach(function(r){
+    const cpf = normalizeCPF(r[clm.cpf]);
+    if(!cpf || !master.has(cpf)) return;
+    master.get(cpf).status_pf = clm.status_pf ? r[clm.status_pf] : null;
+    clubeMatched++;
+  });
+  logMsg('Base Clube: ' + clubeMatched + ' CPFs cruzados com a Carteira (de ' + clubeFile.rows.length + ' linhas).');
+  setProgress(50);
+
+  // ---- enriquecer com Canais ----
+  const chm = canaisFile.mapping;
+  let canaisMatched = 0;
+  const temPushPreCalc = !!chm.push_precalc;
+  canaisFile.rows.forEach(function(r){
+    const cpf = normalizeCPF(r[chm.cpf]);
+    if(!cpf || !master.has(cpf)) return;
+    const rec = master.get(cpf);
+    rec.email = chm.email ? parseBoolField(r[chm.email]) : false;
+    rec.newsletter = chm.newsletter ? parseBoolField(r[chm.newsletter]) : false;
+    rec.app = chm.app ? parseBoolField(r[chm.app]) : false;
+    rec.site = chm.site ? parseBoolField(r[chm.site]) : false;
+    if(temPushPreCalc) rec.push_precalc = parseBoolField(r[chm.push_precalc]);
+    canaisMatched++;
+  });
+  logMsg('Base de Canais: ' + canaisMatched + ' CPFs cruzados (de ' + canaisFile.rows.length + ' linhas).' + (temPushPreCalc ? ' Coluna de Push/In-app pr\u00f3pria detectada \u2014 vou usar ela em vez de calcular e-mail+app.' : ' Sem coluna de Push pr\u00f3pria \u2014 vou calcular como e-mail SIM + app SIM.'));
+  setProgress(60);
+
+  // ---- enriquecer com WhatsApp (opcional) ----
+  if(waFile){
+    const wm = waFile.mapping;
+    let waMatched = 0;
+    waFile.rows.forEach(function(r){
+      const cpf = normalizeCPF(r[wm.cpf]);
+      if(!cpf || !master.has(cpf)) return;
+      master.get(cpf).whatsapp = wm.whatsapp ? parseBoolField(r[wm.whatsapp]) : true;
+      waMatched++;
+    });
+    logMsg('Base de WhatsApp: ' + waMatched + ' CPFs cruzados.');
+  } else {
+    logMsg('Base de WhatsApp n\u00e3o enviada \u2014 segmentos de WhatsApp ficar\u00e3o zerados.');
+  }
+  setProgress(70);
+
+  // ---- computar geração de voucher por ano (quando dispon\u00edvel) + status ----
+  master.forEach(function(rec, cpf){
+    rec.g23 = set23 ? set23.has(cpf) : null;
+    rec.g24 = set24 ? set24.has(cpf) : null;
+    rec.g25 = set25 ? set25.has(cpf) : null;
+    rec.g26 = set26 ? set26.has(cpf) : null;
+    rec.meses_2026 = meses2026PorCpf.has(cpf) ? Array.from(meses2026PorCpf.get(cpf)) : [];
+    if(!temVouchers2026PreCalc && count26){
+      rec.vouchers2026 = count26.get(cpf) || 0;
+    }
+
+    // status3: prioriza colunas pr\u00e9-calculadas da Carteira; sen\u00e3o, calcula pela tabela verdade
+    if(temAtivacaoPreCalc || temReativacaoPreCalc){
+      if(rec.ativacao_pre) rec.status3 = 'ATIVACAO';
+      else if(rec.reativacao_pre) rec.status3 = 'REATIVACAO';
+      else rec.status3 = 'ATIVO_2026';
+    } else if(set23 && set24 && set25 && set26){
+      rec.status3 = getStatus3(rec.g23, rec.g24, rec.g25, rec.g26);
+    } else {
+      rec.status3 = null; // sem dado suficiente
+    }
+    // push: usa coluna pr\u00f3pria da planilha se existir; sen\u00e3o, calcula como e-mail SIM + app SIM
+    rec.push = (rec.push_precalc !== undefined && rec.push_precalc !== null) ? rec.push_precalc : (rec.email && rec.app);
+    rec.n_canais = [rec.email, rec.whatsapp, rec.app, rec.site, rec.newsletter].filter(Boolean).length;
+  });
+  setProgress(85);
+
+  if(!temAtivacaoPreCalc && !temReativacaoPreCalc && !(set23 && set24 && set25 && set26)){
+    logMsg('\u26a0 ATEN\u00c7\u00c3O: n\u00e3o h\u00e1 colunas pr\u00e9-calculadas de ATIVA\u00c7\u00c3O/REATIVA\u00c7\u00c3O na Carteira, nem os 4 arquivos de voucher por ano completos. O status (Ativa\u00e7\u00e3o/Reativa\u00e7\u00e3o/Ativo) n\u00e3o p\u00f4de ser calculado para ningu\u00e9m \u2014 os segmentos que dependem dele ficar\u00e3o vazios. Envie pelo menos um dos dois caminhos.');
+  }
+
+  logMsg('Calculando segmenta\u00e7\u00f5es finais...');
+  const segments = buildSegments(master);
+  STATE.master = master;
+  STATE.temDataMes2026 = temDataMes2026;
+  STATE.segments = segments;
+  setProgress(100);
+  logMsg('Conclu\u00eddo. ' + master.size + ' pessoas processadas.');
+
+  await new Promise(function(r){ setTimeout(r, 300); });
+  renderPublishScreen();
+}
+
+// ============================================================
+// CODIFICAÇÃO COMPACTA PARA PUBLICAÇÃO NO BACKEND COMPARTILHADO
+// ============================================================
+const CHUNK_SIZE = 8000; // registros por chunk, mantendo cada chunk bem abaixo de 5MB
+
+function buildLookup(values){
+  const distinct = Array.from(new Set(values.filter(function(v){return v!==null && v!==undefined;})));
+  const map = {};
+  distinct.forEach(function(v,i){ map[v] = i; });
+  return { list: distinct, map: map };
+}
+
+function encodeMasterForPublish(master){
+  const all = Array.from(master.values());
+  const geracaoLk = buildLookup(all.map(function(r){return r.geracao;}));
+  const geoLk = buildLookup(all.map(function(r){return r.geo;}));
+  const statusPfLk = buildLookup(all.map(function(r){return r.status_pf;}));
+  const tempoCasaLk = buildLookup(all.map(function(r){return r.tempo_casa_bucket;}));
+  const statusLk = { list:['ATIVACAO','REATIVACAO','ATIVO_2026'], map:{ATIVACAO:0,REATIVACAO:1,ATIVO_2026:2} };
+
+  function b(v){ return v===true ? 1 : (v===false ? 0 : null); }
+  function lk(lookup, v){ return (v===null||v===undefined) ? null : lookup.map[v]; }
+
+  const records = all.map(function(r){
+    return [
+      r.cpf, r.idade, lk(geracaoLk,r.geracao), lk(geoLk,r.geo), r.meses_assinatura,
+      lk(tempoCasaLk,r.tempo_casa_bucket), lk(statusPfLk,r.status_pf),
+      b(r.email), b(r.whatsapp), b(r.newsletter), b(r.app), b(r.site), b(r.push),
+      b(r.g23), b(r.g24), b(r.g25), b(r.g26), r.vouchers2026,
+      lk(statusLk, r.status3), (r.meses_2026 && r.meses_2026.length ? r.meses_2026 : null)
+    ];
+  });
+
+  const chunks = [];
+  for(let i=0; i<records.length; i+=CHUNK_SIZE){
+    chunks.push(records.slice(i, i+CHUNK_SIZE));
+  }
+
+  return {
+    meta: {
+      totalRecords: records.length, chunkCount: chunks.length, chunkSize: CHUNK_SIZE,
+      geracao: geracaoLk.list, geo: geoLk.list, statusPf: statusPfLk.list, tempoCasa: tempoCasaLk.list,
+      status3: statusLk.list, temDataMes2026: STATE.temDataMes2026,
+      publishedAt: new Date().toISOString(),
+    },
+    chunks: chunks
+  };
+}
+
+function decodeMasterFromPublish(meta, chunks){
+  const master = new Map();
+  const geracaoLk = meta.geracao, geoLk = meta.geo, statusPfLk = meta.statusPf, tempoCasaLk = meta.tempoCasa, statusLk = meta.status3;
+  function lkVal(lk, idx){ return (idx===null||idx===undefined) ? null : lk[idx]; }
+  function bb(v){ return v===1 ? true : (v===0 ? false : null); }
+
+  chunks.forEach(function(chunk){
+    chunk.forEach(function(rec){
+      const cpf = rec[0];
+      master.set(cpf, {
+        cpf: cpf, nome: null, idade: rec[1],
+        geracao: lkVal(geracaoLk, rec[2]), email_grupo: getEmailGrupo(lkVal(geracaoLk, rec[2])),
+        geo: lkVal(geoLk, rec[3]), meses_assinatura: rec[4],
+        tempo_casa_bucket: lkVal(tempoCasaLk, rec[5]), status_pf: lkVal(statusPfLk, rec[6]),
+        email: bb(rec[7]), whatsapp: bb(rec[8]), newsletter: bb(rec[9]), app: bb(rec[10]), site: bb(rec[11]), push: bb(rec[12]),
+        g23: bb(rec[13]), g24: bb(rec[14]), g25: bb(rec[15]), g26: bb(rec[16]), vouchers2026: rec[17],
+        status3: lkVal(statusLk, rec[18]), meses_2026: rec[19] || [],
+        n_canais: [bb(rec[7]),bb(rec[8]),bb(rec[10]),bb(rec[11]),bb(rec[9])].filter(Boolean).length,
+      });
+    });
+  });
+  return master;
+}
+
+function encodeVouchersForPublish(transactions){
+  if(!transactions || transactions.length===0) return null;
+  const marcaLk = buildLookup(transactions.map(function(t){return t.marca;}));
+  // agrega por (cpf, marca, ano) com contagem para reduzir tamanho
+  const aggMap = new Map();
+  transactions.forEach(function(t){
+    const key = t.cpf + '|' + marcaLk.map[t.marca] + '|' + t.ano;
+    aggMap.set(key, (aggMap.get(key)||0) + 1);
+  });
+  const records = Array.from(aggMap.entries()).map(function(e){
+    const parts = e[0].split('|');
+    return [parts[0], Number(parts[1]), Number(parts[2]), e[1]];
+  });
+  const chunks = [];
+  const VCHUNK = 15000;
+  for(let i=0; i<records.length; i+=VCHUNK){ chunks.push(records.slice(i, i+VCHUNK)); }
+  return { meta: { marca: marcaLk.list, chunkCount: chunks.length, totalRecords: records.length }, chunks: chunks };
+}
+
+function decodeVouchersFromPublish(meta, chunks){
+  const out = [];
+  chunks.forEach(function(chunk){
+    chunk.forEach(function(rec){
+      const marca = meta.marca[rec[1]];
+      for(let i=0;i<rec[3];i++){ out.push({ cpf: rec[0], marca: marca, categoria: getCategoria(marca), ano: rec[2] }); }
+    });
+  });
+  return out;
+}
+
+// ============================================================
+// CONSTRUÇÃO DOS SEGMENTOS FINAIS
+// ============================================================
+function channelBucket(rec){
+  if(rec.email) return 'EMAIL';
+  if(rec.whatsapp) return 'WHATSAPP';
+  if(rec.push) return 'PUSH';
+  return 'ZERO';
+}
+
+function buildSegments(master){
+  const all = Array.from(master.values());
+  const seg = {};
+
+  function makeSeg(key, label, filterFn, group){
+    const list = all.filter(filterFn);
+    seg[key] = { label:label, group:group, count:list.length, cpfs: list.map(function(r){return r.cpf;}) };
+  }
+
+  // ---------- ATIVAÇÃO (excluindo janela de onboarding 1-18m, que roda automático) ----------
+  const isAtivacaoPosOnboarding = function(r){
+    return r.status3 === 'ATIVACAO' && !(r.meses_assinatura !== null && r.meses_assinatura <= 18);
+  };
+  makeSeg('ativ_email_g1', 'Ativa\u00e7\u00e3o \u2014 E-mail Grupo 1 (Gen Z + Millennials)',
+    function(r){ return isAtivacaoPosOnboarding(r) && channelBucket(r)==='EMAIL' && r.email_grupo===1; }, 'Ativa\u00e7\u00e3o');
+  makeSeg('ativ_email_g2', 'Ativa\u00e7\u00e3o \u2014 E-mail Grupo 2 (Gen X + Boomers + Pr\u00e9-Boomer)',
+    function(r){ return isAtivacaoPosOnboarding(r) && channelBucket(r)==='EMAIL' && r.email_grupo===2; }, 'Ativa\u00e7\u00e3o');
+  makeSeg('ativ_whatsapp', 'Ativa\u00e7\u00e3o \u2014 WhatsApp (sem e-mail)',
+    function(r){ return isAtivacaoPosOnboarding(r) && channelBucket(r)==='WHATSAPP'; }, 'Ativa\u00e7\u00e3o');
+  makeSeg('ativ_push', 'Ativa\u00e7\u00e3o \u2014 Push/In-app (sem e-mail, sem WhatsApp)',
+    function(r){ return isAtivacaoPosOnboarding(r) && channelBucket(r)==='PUSH'; }, 'Ativa\u00e7\u00e3o');
+  makeSeg('ativ_zero', 'Ativa\u00e7\u00e3o \u2014 Zero canal (m\u00eddia paga)',
+    function(r){ return isAtivacaoPosOnboarding(r) && channelBucket(r)==='ZERO'; }, 'Ativa\u00e7\u00e3o');
+  makeSeg('ativ_onboarding_excluido', 'Ativa\u00e7\u00e3o dentro da janela de onboarding (exclu\u00eddo \u2014 j\u00e1 roda autom\u00e1tico)',
+    function(r){ return r.status3==='ATIVACAO' && r.meses_assinatura !== null && r.meses_assinatura <= 18; }, 'Info');
+
+  // ---------- REATIVAÇÃO ----------
+  makeSeg('reativ_email_g1', 'Reativa\u00e7\u00e3o \u2014 E-mail Grupo 1',
+    function(r){ return r.status3==='REATIVACAO' && channelBucket(r)==='EMAIL' && r.email_grupo===1; }, 'Reativa\u00e7\u00e3o');
+  makeSeg('reativ_email_g2', 'Reativa\u00e7\u00e3o \u2014 E-mail Grupo 2',
+    function(r){ return r.status3==='REATIVACAO' && channelBucket(r)==='EMAIL' && r.email_grupo===2; }, 'Reativa\u00e7\u00e3o');
+  makeSeg('reativ_whatsapp', 'Reativa\u00e7\u00e3o \u2014 WhatsApp (sem e-mail)',
+    function(r){ return r.status3==='REATIVACAO' && channelBucket(r)==='WHATSAPP'; }, 'Reativa\u00e7\u00e3o');
+  makeSeg('reativ_push', 'Reativa\u00e7\u00e3o \u2014 Push/In-app',
+    function(r){ return r.status3==='REATIVACAO' && channelBucket(r)==='PUSH'; }, 'Reativa\u00e7\u00e3o');
+  makeSeg('reativ_zero', 'Reativa\u00e7\u00e3o \u2014 Zero canal (m\u00eddia paga)',
+    function(r){ return r.status3==='REATIVACAO' && channelBucket(r)==='ZERO'; }, 'Reativa\u00e7\u00e3o');
+
+  // ---------- FIDELIZAÇÃO (ativo em 2026, mas só 1 voucher até agora) ----------
+  const isFidelizacao = function(r){ return r.status3==='ATIVO_2026' && r.vouchers2026===1; };
+  makeSeg('fid_email_g1', 'Fideliza\u00e7\u00e3o \u2014 E-mail Grupo 1',
+    function(r){ return isFidelizacao(r) && channelBucket(r)==='EMAIL' && r.email_grupo===1; }, 'Fideliza\u00e7\u00e3o');
+  makeSeg('fid_email_g2', 'Fideliza\u00e7\u00e3o \u2014 E-mail Grupo 2',
+    function(r){ return isFidelizacao(r) && channelBucket(r)==='EMAIL' && r.email_grupo===2; }, 'Fideliza\u00e7\u00e3o');
+  makeSeg('fid_whatsapp', 'Fideliza\u00e7\u00e3o \u2014 WhatsApp (sem e-mail)',
+    function(r){ return isFidelizacao(r) && channelBucket(r)==='WHATSAPP'; }, 'Fideliza\u00e7\u00e3o');
+  makeSeg('fid_push', 'Fideliza\u00e7\u00e3o \u2014 Push/In-app',
+    function(r){ return isFidelizacao(r) && channelBucket(r)==='PUSH'; }, 'Fideliza\u00e7\u00e3o');
+
+  // ---------- PLANO FAMÍLIA ----------
+  const pfNorm = function(v){ return v ? String(v).trim().toLowerCase() : ''; };
+  makeSeg('pf_espaco_email', 'Plano Fam\u00edlia \u2014 Ainda tem espa\u00e7o, com e-mail',
+    function(r){ return pfNorm(r.status_pf).indexOf('espa\u00e7o')>=0 && r.email; }, 'Plano Fam\u00edlia');
+  makeSeg('pf_espaco_whatsapp', 'Plano Fam\u00edlia \u2014 Ainda tem espa\u00e7o, WhatsApp (sem e-mail)',
+    function(r){ return pfNorm(r.status_pf).indexOf('espa\u00e7o')>=0 && !r.email && r.whatsapp; }, 'Plano Fam\u00edlia');
+  makeSeg('pf_inativo_email', 'Plano Fam\u00edlia \u2014 Inativo, com e-mail',
+    function(r){ return pfNorm(r.status_pf).indexOf('inativo')>=0 && r.email; }, 'Plano Fam\u00edlia');
+
+  // ---------- MÍDIA PAGA (proxies a partir dos mesmos dados) ----------
+  makeSeg('midia_ativ_tardia', 'M\u00eddia Paga \u2014 Ativa\u00e7\u00e3o Tardia (Custom Audience, e-mail dispon\u00edvel)',
+    function(r){ return isAtivacaoPosOnboarding(r) && r.email; }, 'M\u00eddia Paga');
+  makeSeg('midia_retargeting_site', 'M\u00eddia Paga \u2014 Retargeting (usa site, nunca gerou)',
+    function(r){ return isAtivacaoPosOnboarding(r) && r.site; }, 'M\u00eddia Paga');
+  makeSeg('midia_reativ', 'M\u00eddia Paga \u2014 Reativa\u00e7\u00e3o (Custom Audience)',
+    function(r){ return r.status3==='REATIVACAO' && r.email; }, 'M\u00eddia Paga');
+  makeSeg('midia_fid', 'M\u00eddia Paga \u2014 Fideliza\u00e7\u00e3o (Custom Audience)',
+    function(r){ return isFidelizacao(r) && r.email; }, 'M\u00eddia Paga');
+
+  return seg;
+}
+
+// ============================================================
+// RECOMENDAÇÃO DE ARGUMENTOS (cruzamento com histórico de vouchers)
+// ============================================================
+function computeTopBenefits(cpfArray, topN){
+  topN = topN || 10;
+  if(!STATE.voucherTransactions || STATE.voucherTransactions.length===0){
+    return null; // sem dado de marca disponível
+  }
+  const cpfSet = new Set(cpfArray);
+  const marcaCounts = new Map();
+  const catCounts = new Map();
+  let totalMatched = 0;
+  STATE.voucherTransactions.forEach(function(t){
+    if(!cpfSet.has(t.cpf)) return;
+    totalMatched++;
+    marcaCounts.set(t.marca, (marcaCounts.get(t.marca)||0)+1);
+    catCounts.set(t.categoria, (catCounts.get(t.categoria)||0)+1);
+  });
+  function topList(map){
+    return Array.from(map.entries()).sort(function(a,b){return b[1]-a[1];}).slice(0,topN)
+      .map(function(e){ return { nome:e[0], n:e[1], pct: totalMatched ? Math.round(e[1]/totalMatched*1000)/10 : 0 }; });
+  }
+  return { totalVouchers: totalMatched, marcas: topList(marcaCounts), categorias: topList(catCounts) };
+}
+
+function renderBenefitsHTML(result, cpfCount){
+  if(result === null){
+    return '<div class="callout warn" style="margin-top:10px;"><div class="ic">\u26a0</div><div><b>Sem dado de marca dispon\u00edvel.</b><p>Carregue pelo menos um arquivo de voucher com a coluna de Marca/Parceiro mapeada para ver a recomenda\u00e7\u00e3o de argumentos.</p></div></div>';
+  }
+  if(result.totalVouchers === 0){
+    return '<div class="callout warn" style="margin-top:10px;"><div class="ic">\u26a0</div><div><b>Nenhum voucher encontrado para este segmento</b> nos anos carregados. Pode ser um segmento de quem nunca gerou (Ativa\u00e7\u00e3o), ou os anos com voucher dessa pessoa n\u00e3o foram carregados.</div></div>';
+  }
+  const catChips = result.categorias.map(function(c){ return '<span class="chip">'+c.nome+' \u00b7 '+c.pct+'%</span>'; }).join(' ');
+  const marcaRows = result.marcas.map(function(m,i){ return '<tr><td class="num" style="width:26px; color:var(--ink-soft);">'+(i+1)+'</td><td>'+m.nome+'</td><td class="num">'+m.n+'</td><td class="num">'+m.pct+'%</td></tr>'; }).join('');
+  return '<div style="margin-top:12px;">' +
+    '<p style="font-size:11.5px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">TOP CATEGORIAS (' + result.totalVouchers + ' vouchers no hist\u00f3rico deste segmento)</p>' +
+    '<div class="chips">' + catChips + '</div>' +
+    '<p style="font-size:11.5px; font-weight:700; color:var(--ink-soft); margin:12px 0 6px;">TOP 10 MARCAS / PARCEIROS</p>' +
+    '<div class="tablewrap"><table><thead><tr><th>#</th><th>Marca</th><th class="num">Vouchers</th><th class="num">%</th></tr></thead><tbody>' + marcaRows + '</tbody></table></div>' +
+    '</div>';
+}
+
+function showBenefitsForSegment(segKey, targetElId){
+  const seg = STATE.segments[segKey];
+  const el = document.getElementById(targetElId);
+  if(!seg || !el) return;
+  const result = computeTopBenefits(seg.cpfs);
+  el.innerHTML = renderBenefitsHTML(result, seg.cpfs.length);
+  el.style.display = 'block';
+}
+
+// ============================================================
+// EXPORTAÇÃO CSV
+// ============================================================
+function downloadCSV(segKey){
+  const seg = STATE.segments[segKey];
+  if(!seg || seg.cpfs.length===0){ alert('Este segmento est\u00e1 vazio \u2014 nada para exportar.'); return; }
+  const csv = 'CPF\n' + seg.cpfs.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = segKey + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadAllSegmentsSummary(){
+  let csv = 'Segmento;Grupo;Quantidade\n';
+  Object.keys(STATE.segments).forEach(function(k){
+    const s = STATE.segments[k];
+    csv += '"' + s.label + '";"' + s.group + '";' + s.count + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'resumo_todos_segmentos.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// TELA 3 — RESULTADOS
+// ============================================================
+// ============================================================
+// PASSO 4 — CONSTRUTOR DE SEGMENTOS PERSONALIZADOS
+// ============================================================
+function triSelect(id, label){
+  return '<div style="margin-bottom:10px;"><label style="font-size:11.5px; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:3px;">'+label+'</label>' +
+    '<select id="'+id+'" style="width:100%; padding:7px 10px; border-radius:8px; border:1px solid var(--line); font-family:Archivo,sans-serif; font-size:13px;">' +
+    '<option value="qualquer">Qualquer</option><option value="sim">Sim</option><option value="nao">N\u00e3o</option>' +
+    '</select></div>';
+}
+
+function renderCustomBuilder(){
+  const master = STATE.master;
+  const all = Array.from(master.values());
+
+  // opções dinâmicas de Plano Família (a partir dos dados reais)
+  const pfValues = Array.from(new Set(all.map(function(r){return r.status_pf;}).filter(Boolean)));
+  const pfChecks = pfValues.map(function(v,i){
+    return '<label style="display:block; font-size:12.5px; margin-bottom:4px;"><input type="checkbox" class="pfCheck" value="'+v+'" checked> '+v+'</label>';
+  }).join('');
+
+  const geracoes = ['Gen Z','Millennials','Gen X','Baby Boomers','Pr\u00e9-Boomer'];
+  const gerChecks = geracoes.map(function(g){
+    return '<label style="display:block; font-size:12.5px; margin-bottom:4px;"><input type="checkbox" class="gerCheck" value="'+g+'" checked> '+g+'</label>';
+  }).join('') + '<label style="display:block; font-size:12.5px;"><input type="checkbox" class="gerCheck" value="SEM_IDADE" checked> Sem idade v\u00e1lida</label>';
+
+  // MESES DE ASSINATURA — todos os valores inteiros distintos presentes nos dados
+  const mesesDistintos = Array.from(new Set(all.map(function(r){return r.meses_assinatura;}).filter(function(v){return v!==null && v!==undefined;})))
+    .sort(function(a,b){return a-b;});
+  const mesesOptions = mesesDistintos.map(function(m){ return '<option value="'+m+'">'+m+' meses</option>'; }).join('');
+  const mesesFilterHTML =
+    '<label style="font-size:11.5px; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:3px;">Selecione um ou mais meses espec\u00edficos (Ctrl/Cmd+clique para v\u00e1rios)</label>' +
+    '<select id="mesesMultiSelect" multiple size="8" style="width:100%; padding:6px; border-radius:8px; border:1px solid var(--line); font-family:Archivo,sans-serif; font-size:12.5px;">' + mesesOptions + '</select>' +
+    '<p style="font-size:10.5px; color:var(--ink-soft); margin:6px 0 10px;">Nenhum selecionado = n\u00e3o filtra por m\u00eas espec\u00edfico. ' + mesesDistintos.length + ' valores distintos encontrados (' + (mesesDistintos[0]!==undefined?mesesDistintos[0]:'\u2014') + ' a ' + (mesesDistintos[mesesDistintos.length-1]!==undefined?mesesDistintos[mesesDistintos.length-1]:'\u2014') + ').</p>' +
+    '<hr style="border:none; border-top:1px solid var(--line); margin:10px 0;">' +
+    '<label style="font-size:11.5px; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:3px;">Ou uma faixa (m\u00edn / m\u00e1x)</label>' +
+    '<div style="display:flex; gap:8px;"><input type="number" id="mesesMin" min="0" placeholder="m\u00edn" style="width:80px; padding:7px 10px; border-radius:8px; border:1px solid var(--line);"> <input type="number" id="mesesMax" min="0" placeholder="m\u00e1x" style="width:80px; padding:7px 10px; border-radius:8px; border:1px solid var(--line);"></div>' +
+    '<p style="font-size:10.5px; color:var(--ink-soft); margin-top:6px;">Se preencher a faixa, a sele\u00e7\u00e3o de meses espec\u00edficos acima \u00e9 ignorada.</p>';
+
+  // TEMPO DE CASA — valores reais da coluna dedicada da planilha (não faixas inventadas)
+  const tempoCasaDistintos = Array.from(new Set(all.map(function(r){return r.tempo_casa_bucket;}).filter(Boolean)));
+  const temColunaTempoCasa = tempoCasaDistintos.length > 0;
+  const tempoCasaChecks = temColunaTempoCasa
+    ? tempoCasaDistintos.map(function(t){
+        return '<label style="display:block; font-size:12.5px; margin-bottom:4px;"><input type="checkbox" class="tempoCasaCheck" value="'+t+'" checked> '+t+'</label>';
+      }).join('') + '<p style="font-size:10.5px; color:var(--ink-soft); margin-top:8px;">Valores lidos direto da coluna de Tempo de Casa da sua planilha.</p>'
+    : '<p style="font-size:12px; color:var(--ink-soft);">Nenhuma coluna de Tempo de Casa foi mapeada na Carteira \u2014 este filtro fica indispon\u00edvel. Use o filtro de Meses de Assinatura ao lado.</p>';
+
+  const geoBuckets = ['Porto Alegre (Capital)','Interior','N\u00e3o informado'];
+  const geoChecks = geoBuckets.map(function(g){
+    return '<label style="display:block; font-size:12.5px; margin-bottom:4px;"><input type="checkbox" class="geoCheck" value="'+g+'" checked> '+g+'</label>';
+  }).join('');
+
+  const hasYearData = { y23: all.some(function(r){return r.g23!==null;}), y24: all.some(function(r){return r.g24!==null;}),
+    y25: all.some(function(r){return r.g25!==null;}), y26: all.some(function(r){return r.g26!==null;}) };
+  function yearSelect(year, has){
+    const dis = has ? '' : 'disabled';
+    const note = has ? '' : ' <span style="color:var(--red); font-size:10px;">(sem dado \u2014 envie a planilha desse ano)</span>';
+    return '<div style="margin-bottom:10px;"><label style="font-size:11.5px; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:3px;">Gerou voucher em '+year+'?'+note+'</label>' +
+      '<select id="year'+year+'" '+dis+' style="width:100%; padding:7px 10px; border-radius:8px; border:1px solid var(--line); font-family:Archivo,sans-serif; font-size:13px;">' +
+      '<option value="qualquer">Qualquer</option><option value="sim">Sim</option><option value="nao">N\u00e3o</option></select></div>';
+  }
+
+  document.getElementById('mainContent').innerHTML =
+    '<section class="panel active">' +
+    '<h2 class="sec-title">Passo 4 \u2014 Construtor de Segmentos Personalizados</h2>' +
+    '<p class="sec-desc">Combine quantos crit\u00e9rios quiser (todos com E l\u00f3gico entre si). Clique em "Aplicar filtros" para ver o resultado.</p>' +
+    '<div style="margin-bottom:16px;"><button class="dl-btn" style="background:#8B86A0;" onclick="renderFavoritos()">\u2190 Voltar para Favoritos</button></div>' +
+
+    '<div class="grid cols-2" style="gap:16px; align-items:start;">' +
+      '<div class="card"><h3>Gera\u00e7\u00e3o</h3>' + gerChecks + '</div>' +
+      '<div class="card"><h3>Geografia</h3>' + geoChecks + '</div>' +
+    '</div>' +
+    '<div class="grid cols-2" style="gap:16px; align-items:start; margin-top:16px;">' +
+      '<div class="card"><h3>Meses de Assinatura</h3>' + mesesFilterHTML + '</div>' +
+      '<div class="card"><h3>Tempo de Casa (agrupamento da planilha)</h3>' + tempoCasaChecks + '</div>' +
+    '</div>' +
+
+    '<div class="grid cols-2" style="gap:16px; align-items:start; margin-top:16px;">' +
+      '<div class="card"><h3>Status de gera\u00e7\u00e3o de voucher</h3>' +
+        '<select id="statusSelect" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-family:Archivo,sans-serif; font-size:13px;">' +
+        '<option value="qualquer">Qualquer</option>' +
+        '<option value="ATIVACAO">Ativa\u00e7\u00e3o (nunca gerou)</option>' +
+        '<option value="REATIVACAO">Reativa\u00e7\u00e3o (gerou e parou)</option>' +
+        '<option value="ATIVO_2026">Ativo em 2026</option>' +
+        '</select>' +
+        '<p style="font-size:11px; color:var(--ink-soft); margin-top:8px;">Baseado nas colunas ATIVA\u00c7\u00c3O/REATIVA\u00c7\u00c3O da Carteira (se enviadas) ou calculado a partir dos arquivos de voucher por ano.</p>' +
+      '</div>' +
+      '<div class="card"><h3>Padr\u00e3o espec\u00edfico por ano (gerou tal ano, parou tal ano...)</h3>' +
+        yearSelect('2023', hasYearData.y23) + yearSelect('2024', hasYearData.y24) + yearSelect('2025', hasYearData.y25) + yearSelect('2026', hasYearData.y26) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="grid cols-1" style="margin-top:16px;">' +
+      '<div class="card">' +
+        '<h3>M\u00eas espec\u00edfico de gera\u00e7\u00e3o em 2026 <span style="font-weight:400; font-size:11.5px; color:var(--ink-soft);">(para padr\u00f5es como "n\u00e3o gerou 2023-2025 mas gerou em agosto/2026")</span></h3>' +
+        (STATE.temDataMes2026
+          ? ('<div style="display:flex; gap:14px; flex-wrap:wrap;">' +
+              ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map(function(m,i){
+                return '<label style="font-size:12.5px;"><input type="checkbox" class="mes2026Check" value="'+(i+1)+'"> '+m+'</label>';
+              }).join('') +
+             '</div>' +
+             '<p style="font-size:10.5px; color:var(--ink-soft); margin-top:10px;">Nenhum marcado = n\u00e3o filtra por m\u00eas. Marcando 1+, exige ter gerado em pelo menos um dos meses selecionados de 2026 (some-se ao filtro de ano acima, que continua valendo).</p>')
+          : '<p style="font-size:12px; color:var(--ink-soft);">Envie o arquivo de Voucher 2026 com a coluna de Data mapeada para habilitar este filtro.</p>') +
+      '</div>' +
+    '</div>' +
+
+    '<div class="grid cols-2" style="gap:16px; align-items:start; margin-top:16px;">' +
+      '<div class="card"><h3>Canais</h3>' +
+        triSelect('emailSelect','Est\u00e1 na base de e-mail?') +
+        triSelect('waSelect','Est\u00e1 na base de WhatsApp?') +
+        triSelect('appSelect','Usa app?') +
+        triSelect('siteSelect','Usa site?') +
+        triSelect('newsSelect','Est\u00e1 na newsletter?') +
+        triSelect('pushSelect','In-app / Push? (coluna própria se enviada; senão, e-mail + usa app)') +
+        '<label style="font-size:11.5px; font-weight:700; color:var(--ink-soft); display:block; margin:10px 0 3px;">N\u00ba de canais simult\u00e2neos (m\u00edn / m\u00e1x, de 0 a 5)</label>' +
+        '<div style="display:flex; gap:8px;"><input type="number" id="nCanaisMin" min="0" max="5" placeholder="m\u00edn" style="width:70px; padding:7px 10px; border-radius:8px; border:1px solid var(--line);"> <input type="number" id="nCanaisMax" min="0" max="5" placeholder="m\u00e1x" style="width:70px; padding:7px 10px; border-radius:8px; border:1px solid var(--line);"></div>' +
+      '</div>' +
+      '<div class="card"><h3>Plano Fam\u00edlia</h3>' + (pfChecks || '<p style="font-size:12px; color:var(--ink-soft);">Nenhum valor encontrado nos dados.</p>') + '</div>' +
+    '</div>' +
+
+    '<div style="margin-top:20px;"><button class="dl-btn" style="font-size:15px; padding:14px 32px;" onclick="applyCustomFilters()">Aplicar filtros \u25b6</button></div>' +
+    '<div id="customResultArea" style="margin-top:20px;"></div>' +
+    '</section>';
+}
+
+function readFilterCriteriaFromUI(){
+  const gerSelected = Array.from(document.querySelectorAll('.gerCheck:checked')).map(function(el){return el.value;});
+  const geoSelected = Array.from(document.querySelectorAll('.geoCheck:checked')).map(function(el){return el.value;});
+  const pfSelected = Array.from(document.querySelectorAll('.pfCheck:checked')).map(function(el){return el.value;});
+  const statusSel = document.getElementById('statusSelect').value;
+
+  function triVal(id){ const el = document.getElementById(id); return el ? el.value : 'qualquer'; }
+  const emailSel = triVal('emailSelect'), waSel = triVal('waSelect'), appSel = triVal('appSelect'), siteSel = triVal('siteSelect'), newsSel = triVal('newsSelect'), pushSel = triVal('pushSelect');
+  const y23Sel = triVal('year2023'), y24Sel = triVal('year2024'), y25Sel = triVal('year2025'), y26Sel = triVal('year2026');
+  const meses2026Selecionados = Array.from(document.querySelectorAll('.mes2026Check:checked')).map(function(el){return Number(el.value);});
+
+  const nMinEl = document.getElementById('nCanaisMin'), nMaxEl = document.getElementById('nCanaisMax');
+  const nMin = nMinEl.value !== '' ? Number(nMinEl.value) : null;
+  const nMax = nMaxEl.value !== '' ? Number(nMaxEl.value) : null;
+
+  const mesesMinEl = document.getElementById('mesesMin'), mesesMaxEl = document.getElementById('mesesMax');
+  const mesesMin = mesesMinEl.value !== '' ? Number(mesesMinEl.value) : null;
+  const mesesMax = mesesMaxEl.value !== '' ? Number(mesesMaxEl.value) : null;
+  const mesesMultiEl = document.getElementById('mesesMultiSelect');
+  const mesesEspecificos = mesesMultiEl ? Array.from(mesesMultiEl.selectedOptions).map(function(o){return Number(o.value);}) : [];
+
+  const tempoCasaSelected = Array.from(document.querySelectorAll('.tempoCasaCheck:checked')).map(function(el){return el.value;});
+  const totalTempoCasaOptions = document.querySelectorAll('.tempoCasaCheck').length;
+
+  return {
+    gerSelected: gerSelected, geoSelected: geoSelected, pfSelected: pfSelected, statusSel: statusSel,
+    emailSel: emailSel, waSel: waSel, appSel: appSel, siteSel: siteSel, newsSel: newsSel, pushSel: pushSel,
+    y23Sel: y23Sel, y24Sel: y24Sel, y25Sel: y25Sel, y26Sel: y26Sel, meses2026Selecionados: meses2026Selecionados,
+    nMin: nMin, nMax: nMax, mesesMin: mesesMin, mesesMax: mesesMax, mesesEspecificos: mesesEspecificos,
+    tempoCasaSelected: tempoCasaSelected, totalTempoCasaOptions: totalTempoCasaOptions,
+  };
+}
+
+function applyFilterCriteria(criteria, master){
+  const all = Array.from((master || STATE.master).values());
+  const c = criteria;
+  const usaFaixaMeses = (c.mesesMin !== null || c.mesesMax !== null);
+
+  function matchTri(sel, val){
+    if(sel === 'qualquer') return true;
+    if(sel === 'sim') return val === true;
+    if(sel === 'nao') return val === false;
+    return true;
+  }
+
+  return all.filter(function(r){
+    const gerKey = r.geracao || 'SEM_IDADE';
+    if(!c.gerSelected.includes(gerKey)) return false;
+
+    if(usaFaixaMeses){
+      if(r.meses_assinatura === null || r.meses_assinatura === undefined) return false;
+      if(c.mesesMin !== null && r.meses_assinatura < c.mesesMin) return false;
+      if(c.mesesMax !== null && r.meses_assinatura > c.mesesMax) return false;
+    } else if(c.mesesEspecificos.length > 0){
+      if(r.meses_assinatura === null || r.meses_assinatura === undefined) return false;
+      if(!c.mesesEspecificos.includes(r.meses_assinatura)) return false;
+    }
+
+    if(c.totalTempoCasaOptions > 0 && c.tempoCasaSelected.length < c.totalTempoCasaOptions){
+      if(!r.tempo_casa_bucket || !c.tempoCasaSelected.includes(r.tempo_casa_bucket)) return false;
+    }
+    if(!c.geoSelected.includes(r.geo)) return false;
+    if(c.pfSelected.length && r.status_pf && !c.pfSelected.includes(r.status_pf)) return false;
+    if(c.pfSelected.length===0 && r.status_pf) return false;
+    if(c.statusSel !== 'qualquer' && r.status3 !== c.statusSel) return false;
+    if(!matchTri(c.emailSel, r.email)) return false;
+    if(!matchTri(c.waSel, r.whatsapp)) return false;
+    if(!matchTri(c.appSel, r.app)) return false;
+    if(!matchTri(c.siteSel, r.site)) return false;
+    if(!matchTri(c.newsSel, r.newsletter)) return false;
+    if(!matchTri(c.pushSel, r.push)) return false;
+    if(c.y23Sel!=='qualquer' && !matchTri(c.y23Sel, r.g23)) return false;
+    if(c.y24Sel!=='qualquer' && !matchTri(c.y24Sel, r.g24)) return false;
+    if(c.y25Sel!=='qualquer' && !matchTri(c.y25Sel, r.g25)) return false;
+    if(c.y26Sel!=='qualquer' && !matchTri(c.y26Sel, r.g26)) return false;
+    if(c.meses2026Selecionados.length > 0){
+      const gerouEmAlgumMes = (r.meses_2026 || []).some(function(m){ return c.meses2026Selecionados.includes(m); });
+      if(!gerouEmAlgumMes) return false;
+    }
+    if(c.nMin !== null && r.n_canais < c.nMin) return false;
+    if(c.nMax !== null && r.n_canais > c.nMax) return false;
+    return true;
+  });
+}
+
+function applyCustomFilters(){
+  const criteria = readFilterCriteriaFromUI();
+  const result = applyFilterCriteria(criteria, STATE.master);
+  STATE.lastCriteria = criteria;
+
+  STATE.segments['CUSTOM'] = { label:'Segmento personalizado', group:'Custom', count: result.length, cpfs: result.map(function(r){return r.cpf;}) };
+
+  const preview = result.slice(0,15).map(function(r){
+    return '<tr><td>'+r.cpf+'</td><td>'+(r.geracao||'\u2014')+'</td><td>'+(r.meses_assinatura!==null&&r.meses_assinatura!==undefined?r.meses_assinatura+' meses':'\u2014')+'</td><td>'+(r.tempo_casa_bucket||'\u2014')+'</td><td>'+(r.status3||'\u2014')+'</td><td>'+(r.email?'\u2713':'')+'</td><td>'+(r.whatsapp?'\u2713':'')+'</td><td>'+(r.app?'\u2713':'')+'</td><td>'+(r.site?'\u2713':'')+'</td></tr>';
+  }).join('');
+
+  const benefitsResult = computeTopBenefits(result.map(function(r){return r.cpf;}));
+
+  document.getElementById('customResultArea').innerHTML =
+    '<div class="seg-card" style="border-color:var(--orange);">' +
+    '<h4 style="color:var(--orange);">Resultado <span class="seg-n" style="color:var(--orange);">' + result.length.toLocaleString('pt-BR') + '</span></h4>' +
+    '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; flex-wrap:wrap;">' +
+    '<p>' + result.length + ' pessoas correspondem a esses crit\u00e9rios</p>' +
+    '<div style="display:flex; gap:8px;">' +
+    '<button class="dl-btn" style="background:var(--teal);" onclick="promptSaveFavorito()">\u2605 Favoritar este segmento</button>' +
+    '<button class="dl-btn" style="background:var(--orange);" onclick="downloadCSV(\'CUSTOM\')">Baixar CSV</button>' +
+    '</div></div>' +
+    '<hr class="section-divider">' +
+    '<h4 style="color:var(--orange); font-size:14px;">\u2b50 Argumentos recomendados para este segmento</h4>' +
+    renderBenefitsHTML(benefitsResult, result.length) +
+    (result.length ? ('<hr class="section-divider"><div class="tablewrap"><table><thead><tr><th>CPF</th><th>Gera\u00e7\u00e3o</th><th>Meses</th><th>Tempo de casa</th><th>Status</th><th>E-mail</th><th>WhatsApp</th><th>App</th><th>Site</th></tr></thead><tbody>' + preview + '</tbody></table>' +
+      (result.length>15 ? '<p style="font-size:11px; color:var(--ink-soft); margin-top:6px;">Mostrando 15 de ' + result.length + ' \u2014 baixe o CSV para ver todos.</p>' : '') + '</div>') : '') +
+    '</div>';
+}
+
+// ============================================================
+// PUBLICAÇÃO / CARREGAMENTO DA BASE COMPARTILHADA (BACKEND)
+// ============================================================
+async function renderPublishScreen(){
+  document.getElementById('mainContent').innerHTML =
+    '<section class="panel active">' +
+    '<h2 class="sec-title">Base processada \u2014 ' + STATE.master.size.toLocaleString('pt-BR') + ' pessoas</h2>' +
+    '<p class="sec-desc">Publique para que qualquer pessoa do time consiga gerar segmenta\u00e7\u00f5es sem precisar subir as planilhas de novo. A base fica salva no backend do pr\u00f3prio app, compartilhada para todo mundo.</p>' +
+    '<div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;">' +
+    '<button class="dl-btn" style="font-size:14px; padding:12px 26px; background:var(--teal);" onclick="publishToTeam()">\u2601 Publicar para o time</button>' +
+    '<button class="dl-btn" style="font-size:14px; padding:12px 26px; background:#8B86A0;" onclick="skipPublishAndUseLocally()">Usar s\u00f3 agora, sem publicar</button>' +
+    '</div>' +
+    '<div id="publishStatus" style="margin-top:18px;"></div>' +
+    '</section>';
+}
+
+function skipPublishAndUseLocally(){
+  renderFavoritos();
+}
+
+async function publishToTeam(){
+  const statusEl = document.getElementById('publishStatus');
+  statusEl.innerHTML = '<div class="log-box"><span class="spinner"></span>Codificando e publicando...</div>';
+  try{
+    const encoded = encodeMasterForPublish(STATE.master);
+    await window.storage.set('segbuilder_master_meta', encoded.meta, true);
+    for(let i=0;i<encoded.chunks.length;i++){
+      await window.storage.set('segbuilder_master_chunk_'+i, encoded.chunks[i], true);
+      statusEl.innerHTML = '<div class="log-box">Publicando base... chunk ' + (i+1) + '/' + encoded.chunks.length + '</div>';
+    }
+    if(STATE.voucherTransactions && STATE.voucherTransactions.length){
+      const vEncoded = encodeVouchersForPublish(STATE.voucherTransactions);
+      if(vEncoded){
+        await window.storage.set('segbuilder_vouchers_meta', vEncoded.meta, true);
+        for(let i=0;i<vEncoded.chunks.length;i++){
+          await window.storage.set('segbuilder_vouchers_chunk_'+i, vEncoded.chunks[i], true);
+        }
+      }
+    } else {
+      await window.storage.delete('segbuilder_vouchers_meta', true).catch(function(){});
+    }
+    statusEl.innerHTML = '<div class="callout good"><div class="ic">\u2705</div><div><b>Base publicada com sucesso.</b><p>Qualquer pessoa que abrir este app agora vai ver esta base carregada automaticamente, sem precisar subir planilha nenhuma.</p></div></div>';
+    await new Promise(function(r){ setTimeout(r, 1200); });
+    renderFavoritos();
+  }catch(err){
+    statusEl.innerHTML = '<div class="callout warn"><div class="ic">\u26a0</div><div><b>Erro ao publicar.</b><p>' + err.message + '</p></div></div>';
+  }
+}
+
+async function checkForPublishedBase(){
+  const meta = await window.storage.get('segbuilder_master_meta', true);
+  if(!meta || !meta.value) return null;
+  return meta.value;
+}
+
+async function loadPublishedBase(meta){
+  renderProgressScreen();
+  STATE.log = [];
+  STATE.segments = {};
+  logMsg('Carregando base publicada (' + meta.totalRecords + ' pessoas, publicada em ' + new Date(meta.publishedAt).toLocaleString('pt-BR') + ')...');
+  setProgress(20);
+  const chunks = [];
+  for(let i=0;i<meta.chunkCount;i++){
+    const chunkResult = await window.storage.get('segbuilder_master_chunk_'+i, true);
+    chunks.push(chunkResult ? chunkResult.value : []);
+    setProgress(20 + Math.round((i+1)/meta.chunkCount*50));
+  }
+  STATE.master = decodeMasterFromPublish(meta, chunks);
+  STATE.temDataMes2026 = !!meta.temDataMes2026;
+  logMsg('Base carregada: ' + STATE.master.size + ' pessoas.');
+  setProgress(80);
+
+  try{
+    const vMeta = await window.storage.get('segbuilder_vouchers_meta', true);
+    if(vMeta && vMeta.value){
+      const vChunks = [];
+      for(let i=0;i<vMeta.value.chunkCount;i++){
+        const r = await window.storage.get('segbuilder_vouchers_chunk_'+i, true);
+        vChunks.push(r ? r.value : []);
+      }
+      STATE.voucherTransactions = decodeVouchersFromPublish(vMeta.value, vChunks);
+      logMsg('Hist\u00f3rico de vouchers carregado: ' + STATE.voucherTransactions.length + ' transa\u00e7\u00f5es (para recomenda\u00e7\u00e3o de argumentos).');
+    } else {
+      STATE.voucherTransactions = [];
+    }
+  }catch(err){
+    STATE.voucherTransactions = [];
+  }
+  setProgress(100);
+  await new Promise(function(r){ setTimeout(r, 200); });
+  renderFavoritos();
+}
+
+// ============================================================
+// FAVORITOS (substitui a antiga grade de segmentos fixos)
+// ============================================================
+async function loadFavoritosList(){
+  try{
+    const res = await window.storage.get('segbuilder_favoritos', true);
+    return (res && res.value) ? res.value : [];
+  }catch(err){
+    return [];
+  }
+}
+
+async function saveFavoritosList(list){
+  await window.storage.set('segbuilder_favoritos', list, true);
+}
+
+async function renderFavoritos(){
+  document.getElementById('mainContent').innerHTML =
+    '<section class="panel active">' +
+    '<h2 class="sec-title">Segmentos Favoritos</h2>' +
+    '<p class="sec-desc">' + STATE.master.size.toLocaleString('pt-BR') + ' pessoas na base carregada. Segmentos favoritados por qualquer pessoa do time aparecem aqui para todo mundo, sempre recalculados na hora com os dados atuais.</p>' +
+    '<div style="display:flex; gap:10px; margin:16px 0; flex-wrap:wrap;">' +
+    '<button class="dl-btn" style="background:var(--orange); font-size:14px; padding:12px 22px;" onclick="renderCustomBuilder()">+ Novo Segmento</button>' +
+    '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">\u2191 Enviar planilhas novas (atualizar base)</button>' +
+    '</div>' +
+    '<div id="favoritosList"><div class="log-box"><span class="spinner"></span>Carregando favoritos...</div></div>' +
+    '</section>';
+
+  const favoritos = await loadFavoritosList();
+  const listEl = document.getElementById('favoritosList');
+  if(favoritos.length === 0){
+    listEl.innerHTML = '<div class="callout insight"><div class="ic">\ud83d\udca1</div><div><b>Nenhum segmento favoritado ainda.</b><p>V\u00e1 em "+ Novo Segmento", monte os crit\u00e9rios que quiser e clique em "\u2605 Favoritar este segmento" no resultado \u2014 ele aparece aqui pra todo mundo do time a partir da\u00ed.</p></div></div>';
+    return;
+  }
+
+  const cards = favoritos.map(function(fav, idx){
+    const result = applyFilterCriteria(fav.criteria, STATE.master);
+    return '<div class="seg-card">' +
+      '<h4>\u2b50 ' + fav.nome + ' <span class="seg-n">' + result.length.toLocaleString('pt-BR') + '</span></h4>' +
+      '<p style="font-size:11px; color:var(--ink-soft); margin-bottom:10px;">Salvo por ' + (fav.autor||'algu\u00e9m do time') + ' em ' + new Date(fav.criadoEm).toLocaleDateString('pt-BR') + '</p>' +
+      '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
+      '<button class="dl-btn" onclick="verArgumentosFavorito(' + idx + ')">Ver argumentos</button>' +
+      '<button class="dl-btn" onclick="downloadFavoritoCSV(' + idx + ')">Baixar CSV</button>' +
+      '<button class="dl-btn" style="background:var(--purple);" onclick="editarFavorito(' + idx + ')">Abrir no construtor</button>' +
+      '<button class="dl-btn" style="background:var(--red);" onclick="removerFavorito(' + idx + ')">Remover</button>' +
+      '</div>' +
+      '<div id="favBenef-' + idx + '" style="display:none;"></div>' +
+      '</div>';
+  }).join('');
+  listEl.innerHTML = cards;
+  STATE.favoritosCache = favoritos;
+}
+
+async function promptSaveFavorito(){
+  const nome = prompt('Nome deste segmento (vai aparecer para todo o time):');
+  if(!nome) return;
+  const autor = prompt('Seu nome (opcional, s\u00f3 pra identifica\u00e7\u00e3o):') || 'An\u00f4nimo';
+  const favoritos = await loadFavoritosList();
+  favoritos.push({ nome: nome, autor: autor, criadoEm: new Date().toISOString(), criteria: STATE.lastCriteria });
+  await saveFavoritosList(favoritos);
+  alert('Segmento favoritado! Vai aparecer na tela de Favoritos para todo o time.');
+}
+
+function verArgumentosFavorito(idx){
+  const fav = STATE.favoritosCache[idx];
+  const result = applyFilterCriteria(fav.criteria, STATE.master);
+  const benefitsResult = computeTopBenefits(result.map(function(r){return r.cpf;}));
+  const el = document.getElementById('favBenef-'+idx);
+  el.innerHTML = renderBenefitsHTML(benefitsResult, result.length);
+  el.style.display = 'block';
+}
+
+function downloadFavoritoCSV(idx){
+  const fav = STATE.favoritosCache[idx];
+  const result = applyFilterCriteria(fav.criteria, STATE.master);
+  const csv = 'CPF\n' + result.map(function(r){return r.cpf;}).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fav.nome.replace(/[^a-z0-9]/gi,'_') + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function removerFavorito(idx){
+  if(!confirm('Remover este segmento favorito para todo o time?')) return;
+  const favoritos = await loadFavoritosList();
+  favoritos.splice(idx,1);
+  await saveFavoritosList(favoritos);
+  renderFavoritos();
+}
+
+function editarFavorito(idx){
+  const fav = STATE.favoritosCache[idx];
+  renderCustomBuilder();
+  setTimeout(function(){ applyCriteriaToUI(fav.criteria); }, 50);
+}
+
+function applyCriteriaToUI(c){
+  document.querySelectorAll('.gerCheck').forEach(function(el){ el.checked = c.gerSelected.includes(el.value); });
+  document.querySelectorAll('.geoCheck').forEach(function(el){ el.checked = c.geoSelected.includes(el.value); });
+  document.querySelectorAll('.pfCheck').forEach(function(el){ el.checked = c.pfSelected.includes(el.value); });
+  document.querySelectorAll('.tempoCasaCheck').forEach(function(el){ el.checked = c.tempoCasaSelected.includes(el.value); });
+  document.querySelectorAll('.mes2026Check').forEach(function(el){ el.checked = c.meses2026Selecionados.includes(Number(el.value)); });
+  function setSel(id,v){ const el=document.getElementById(id); if(el) el.value = v; }
+  setSel('statusSelect', c.statusSel);
+  setSel('emailSelect', c.emailSel); setSel('waSelect', c.waSel); setSel('appSelect', c.appSel);
+  setSel('siteSelect', c.siteSel); setSel('newsSelect', c.newsSel); setSel('pushSelect', c.pushSel);
+  setSel('year2023', c.y23Sel); setSel('year2024', c.y24Sel); setSel('year2025', c.y25Sel); setSel('year2026', c.y26Sel);
+  function setVal(id,v){ const el=document.getElementById(id); if(el) el.value = (v===null?'':v); }
+  setVal('nCanaisMin', c.nMin); setVal('nCanaisMax', c.nMax);
+  setVal('mesesMin', c.mesesMin); setVal('mesesMax', c.mesesMax);
+  const mesesMultiEl = document.getElementById('mesesMultiSelect');
+  if(mesesMultiEl){ Array.from(mesesMultiEl.options).forEach(function(o){ o.selected = c.mesesEspecificos.includes(Number(o.value)); }); }
+  applyCustomFilters();
+}
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+async function initApp(){
+  if(!isAppsScriptConfigured()){
+    document.getElementById('mainContent').innerHTML =
+      '<section class="panel active">' +
+      '<div class="callout warn"><div class="ic">\u26a0</div><div><b>Backend n\u00e3o configurado ainda.</b><p>Este app precisa de uma URL de Apps Script implantada para publicar/compartilhar bases e favoritos com o time. Edite a constante <code>APPS_SCRIPT_URL</code> no in\u00edcio do arquivo HTML com a URL do seu deploy (veja instru\u00e7\u00f5es no arquivo Code.gs). Por enquanto, o app segue funcionando s\u00f3 localmente nesta aba \u2014 publicar e favoritar ficam indispon\u00edveis.</p></div></div>' +
+      '</section>';
+    logMsg('APPS_SCRIPT_URL n\u00e3o configurada \u2014 seguindo s\u00f3 no modo local.');
+    await new Promise(function(r){ setTimeout(r, 2500); });
+    renderUploadScreen();
+    return;
+  }
+  document.getElementById('mainContent').innerHTML = '<section class="panel active"><div class="log-box"><span class="spinner"></span>Conectando ao backend...</div></section>';
+  let meta = null;
+  try{
+    meta = await checkForPublishedBase();
+  }catch(err){
+    document.getElementById('mainContent').innerHTML =
+      '<section class="panel active"><div class="callout warn"><div class="ic">\u26a0</div><div><b>N\u00e3o consegui conectar ao backend.</b><p>' + err.message + '. Confira se a URL do Apps Script est\u00e1 correta e se a implanta\u00e7\u00e3o est\u00e1 com acesso "Qualquer pessoa". Seguindo no modo local por enquanto.</p></div></div></section>';
+    await new Promise(function(r){ setTimeout(r, 2500); });
+    renderUploadScreen();
+    return;
+  }
+  if(meta){
+    document.getElementById('mainContent').innerHTML =
+      '<section class="panel active">' +
+      '<h2 class="sec-title">Base publicada encontrada</h2>' +
+      '<div class="callout good"><div class="ic">\u2601</div><div><b>' + meta.totalRecords.toLocaleString('pt-BR') + ' pessoas</b><p>Publicada em ' + new Date(meta.publishedAt).toLocaleString('pt-BR') + '. Carregue para gerar segmenta\u00e7\u00f5es sem subir planilha nenhuma.</p></div></div>' +
+      '<div style="display:flex; gap:12px; margin-top:18px;">' +
+      '<button class="dl-btn" style="font-size:14px; padding:12px 26px; background:var(--teal);" onclick="loadPublishedBase(' + JSON.stringify(meta).replace(/"/g,'&quot;') + ')">Carregar base publicada</button>' +
+      '<button class="dl-btn" style="background:#8B86A0;" onclick="renderUploadScreen()">Enviar planilhas novas</button>' +
+      '</div>' +
+      '</section>';
+  } else {
+    renderUploadScreen();
+  }
+}
+initApp();
+</script>
+</body>
+</html>
